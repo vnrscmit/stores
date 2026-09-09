@@ -1,4 +1,9 @@
 <?php
+// TEST: Create log file immediately to confirm this file is being called
+$logfile = 'C:\\xampp56\\htdocs\\stores-main1\\qr_autolink.log';
+@file_put_contents($logfile, "\n=== FILE CALLED AT " . date('Y-m-d H:i:s') . " ===\n", FILE_APPEND);
+@file_put_contents($logfile, "POST/GET Data: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+
 session_start();
 	if(!isset($_SESSION['sessionadmin']))
 	{
@@ -20,6 +25,11 @@ session_start();
 	//$yearid_id="09-10";
 	require_once("../include/config.php");
 	require_once("../include/connection.php");
+
+// DEBUG: Log when this file is called
+$logfile = 'C:\\xampp56\\htdocs\\stores-main1\\qr_autolink.log';
+file_put_contents($logfile, "\n" . date('Y-m-d H:i:s') . " - getuser_steditsubupdate.php called\n", FILE_APPEND);
+file_put_contents($logfile, "GET Parameters: " . print_r($_GET, true) . "\n", FILE_APPEND);
 
 /*if(isset($_GET['frm_action']))
 	{
@@ -361,6 +371,23 @@ $sql_sub="insert into tblarrival_sub (arrival_id, classification_id, item_id, qt
 if(mysql_query($sql_sub) or die(mysql_error()))
 {
 $subid=mysql_insert_id();
+
+// AUTO-LINK DRAFT QR CODES TO THIS ARRIVAL (NEW)
+$logfile = 'C:\\xampp56\\htdocs\\stores-main1\\qr_autolink.log';
+file_put_contents($logfile, "\n\n=== QR AUTO-LINK EVENT ===\n", FILE_APPEND);
+file_put_contents($logfile, "DEBUG QR LINK (NEW ARRIVAL): mainid=$mainid, subid=$subid, item_id=$o, class_id=$n\n", FILE_APPEND);
+
+$sql_qr_update = "UPDATE tbl_qr_codes SET arrival_id='$mainid', arrsub_id='$subid', linked_status='linked' WHERE item_id='$o' AND classification_id='$n' AND linked_status='draft'";
+file_put_contents($logfile, "DEBUG QR UPDATE SQL: $sql_qr_update\n", FILE_APPEND);
+
+$qr_result = mysql_query($sql_qr_update);
+if($qr_result) {
+    $affected = mysql_affected_rows();
+    file_put_contents($logfile, "DEBUG QR UPDATE SUCCESS: $affected rows updated\n", FILE_APPEND);
+} else {
+    file_put_contents($logfile, "DEBUG QR UPDATE ERROR: " . mysql_error() . "\n", FILE_APPEND);
+}
+
 if($god1==1)
 {
 $sql_sub_sub="insert into tblarr_sloc (arr_type, arr_tr_id, arr_id, classification_id, item_id, whid, binid, subbin, qty_good, ups_good, qty_damage, ups_damage, rowid) values('Stocktransfer','$mainid','$subid','$n','$o','$y','$z','$a1','$b1','$c1','0','0', '$rowid1')";
@@ -410,6 +437,23 @@ $sql_sub="insert into tblarrival_sub (arrival_id, classification_id, item_id, qt
 if(mysql_query($sql_sub) or die(mysql_error()))
 {
 $subid=mysql_insert_id();
+
+// AUTO-LINK DRAFT QR CODES TO THIS ARRIVAL (UPDATE)
+$logfile = 'C:\\xampp56\\htdocs\\stores-main1\\qr_autolink.log';
+file_put_contents($logfile, "\n=== QR AUTO-LINK EVENT (UPDATE) ===\n", FILE_APPEND);
+file_put_contents($logfile, "DEBUG QR LINK (UPDATE): mainid=$mainid, subid=$subid, item_id=$o, class_id=$n\n", FILE_APPEND);
+
+$sql_qr_update = "UPDATE tbl_qr_codes SET arrival_id='$mainid', arrsub_id='$subid', linked_status='linked' WHERE item_id='$o' AND classification_id='$n' AND linked_status='draft'";
+file_put_contents($logfile, "DEBUG QR UPDATE SQL: $sql_qr_update\n", FILE_APPEND);
+
+$qr_result = mysql_query($sql_qr_update);
+if($qr_result) {
+    $affected = mysql_affected_rows();
+    file_put_contents($logfile, "DEBUG QR UPDATE SUCCESS: $affected rows updated\n", FILE_APPEND);
+} else {
+    file_put_contents($logfile, "DEBUG QR UPDATE ERROR: " . mysql_error() . "\n", FILE_APPEND);
+}
+
 if($god1==1)
 {
 $sql_sub_sub="insert into tblarr_sloc (arr_type, arr_tr_id, arr_id, classification_id, item_id, whid, binid, subbin, qty_good, ups_good, qty_damage, ups_damage, rowid) values('Stocktransfer','$mainid','$subid','$n','$o','$y','$z','$a1','$b1','$c1','0','0', '$rowid1')";

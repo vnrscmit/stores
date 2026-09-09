@@ -26,7 +26,7 @@ if(isset($_REQUEST['whid']))
 	$whid = $_REQUEST['whid'];
 	}
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		/*$class=trim($_POST['txtclassification']);
 		//$cropshort=strtoupper(trim($_POST['txtcropshort']));
@@ -125,74 +125,13 @@ function mySubmit()
 }
 </SCRIPT>
 <body>
+
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav"> <li><a href="index1.php"> Masters </a>
-              <ul>
-                <li><a href="home_classification.php" >&nbsp;Classification&nbsp;Master</a></li>
-                <li><a href="stores_home.php" >&nbsp;Item&nbsp;Master</a></li>
-				<li><a href="home_country.php" >&nbsp;Country&nbsp;Master</a></li>
-				<li><a href="home_country.php" >&nbsp;State&nbsp;Master</a></li>
-                <li><a href="party_Masterhome.php" >&nbsp;Party&nbsp;Master</a></li>
-                <li><a href="selectbin.php" >&nbsp;SLOC&nbsp;Master</a></li>
-                <li><a href="role_home.php" >&nbsp;e-indent&nbsp;Master</a></li>
-                <li><a href="operator_home.php" >&nbsp;Operator&nbsp;Master</a></li>
-				<li><a href="viewers_home.php" >&nbsp;Viewers&nbsp;Master</a></li>
-				<li><a href="home_report.php" >&nbsp;Reports&nbsp;Master</a></li>
-                <li><a href="companyhome.php" >&nbsp;Parameters&nbsp;Master</a></li>
-                <li><a href="current_year.php" >&nbsp;Year&nbsp;Management&nbsp;Master</a></li>
-              </ul>
-            </li>
-            <li><a href="index1.php">Transactions </a>
-             <ul>
-                <li><a href="../Transaction/add_g.php" >&nbsp;Good&nbsp;to&nbsp;Damage</a></li>
-                <li><a href="../Transaction/add_d.php" >&nbsp;Damage&nbsp;to&nbsp;Good</a></li>
-                <li><a href="../Transaction/add_shortage.php" >&nbsp;Excess/Shortage</a></li>
-                <li><a href="../Transaction/home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-				<li><a href="../Transaction/home_interitem.php" >&nbsp;Inter&nbsp;Item&nbsp;Transfer</a></li>
-				<li><a href="../Transaction/home_openstock.php" >&nbsp;Opening&nbsp;Stock</a></li>
-              </ul>
-            </li>
-            <li><a href="index1.php"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-              </ul>
-            </li>
-            <li>
-            <a href="index1.php">Utility </a>
-			<ul><li><a href=" Javascript:void(0)" onclick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onclick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>  
-<li><a href=" Javascript:void(0)" onclick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li>
-			<li><a href=" Javascript:void(0)" onclick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-              </ul>
-            </li>
-			</ul>
-            </div>
-            </div> <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top">
-                <li> <a href="../Transaction/adminprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="../Transaction/help.php">Help </a>| </li>
-                <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>
@@ -265,9 +204,9 @@ $pagination = "";
 		$pagination .= "<div class=\"pagination\" align=\"right\" style=\"width:730px\">";
 		//previous button
 		if ($page > 1) 
-			$pagination.= " <a href=\"$targetpage?page=$prev&whid=$whid\">« previous </a> ";
+			$pagination.= " <a href=\"$targetpage?page=$prev&whid=$whid\">ï¿½ previous </a> ";
 		else
-			$pagination.= " <span class=\"disabled\">« previous </span> ";	
+			$pagination.= " <span class=\"disabled\">ï¿½ previous </span> ";	
 		
 		//pages	
 		if ($lastpage < 7 + ($adjacents * 2))	//not enough pages to bother breaking it up
@@ -331,9 +270,9 @@ $pagination = "";
 		
 		//next button
 		if ($page < $counter - 1) 
-			$pagination.= " <a href=\"$targetpage?page=$next&whid=$whid\"> next »</a> ";
+			$pagination.= " <a href=\"$targetpage?page=$next&whid=$whid\"> next ï¿½</a> ";
 		else
-			$pagination.= " <span class=\"disabled\"> next »</span> ";
+			$pagination.= " <span class=\"disabled\"> next ï¿½</span> ";
 		$pagination.= "</div>\n";		
 	}
 	 $srno=($page-1)*$limit+1;

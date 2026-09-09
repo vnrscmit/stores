@@ -1,65 +1,61 @@
- $(document).ready(function() {
+$(document).ready(function () {
 
-$("ul#nav > li").each(function(index) {  
-							   
-							   
-							   if($(this).hasClass("currentpage"))
-							   {
-   									
-
-									$(this).addClass("hover_parent");
-	
-									var child = $('#' +this.id+' > a span');
-									child.addClass("link1");
-							   }
-							   
-							
-							   }  );
+	$("ul#nav > li").each(function (index) {
 
 
- 
- $(".here").hover(function(){  
+		if ($(this).hasClass("currentpage")) {
 
-var ch = $(this).parent();
-var pa = this.parentNode.id;
-//alert(this.parentNode.id);
-var child = ch.children();
+
+			$(this).addClass("hover_parent");
+
+			var child = $('#' + this.id + ' > a span');
+			child.addClass("link1");
+		}
+	});
 
 
 
-ch.addClass("hover_parent");
+	$(".here").hover(function () {
 
-var child = $('#' +pa+' > a span');
-child.addClass("link1");
-$(".text1").addClass("link1");
+		var ch = $(this).parent();
+		var pa = this.parentNode.id;
+		//alert(this.parentNode.id);
+		var child = ch.children();
 
 
 
-},function(){
+		ch.addClass("hover_parent");
 
-var ch = $(this).parent();
+		var child = $('#' + pa + ' > a span');
+		child.addClass("link1");
+		$(".text1").addClass("link1");
 
-var child = ch.children();
+
+
+	}, function () {
+
+		var ch = $(this).parent();
+
+		var child = ch.children();
 
 
 
 
-$(".link1").each(function(index){ 
-						  var par = $(this).parent();
-						  
-						  if(!$(par).parent().hasClass("currentpage"))
-						  {
-							  ch.removeClass("hover_parent");
-							  	$(this).removeClass("link1");
-						  }
-						  
-						  });
+		$(".link1").each(function (index) {
+			var par = $(this).parent();
+
+			if (!$(par).parent().hasClass("currentpage")) {
+				ch.removeClass("hover_parent");
+				$(this).removeClass("link1");
+			}
+
+		});
 
 
- } );
+	});
 
 
 
 
 
- });
+});

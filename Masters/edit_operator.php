@@ -29,7 +29,7 @@ if(isset($_REQUEST['id']))
 	}
 	 $role='operator';
 	//$status='active';
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$name=trim($_POST['txtname']);
 		$login=trim($_POST['txtId']);
@@ -62,6 +62,12 @@ if(isset($_REQUEST['id']))
 		  alert("Duplicate not allowed.");
 		  </script>
 		 <?php }
+		 else if(empty($name) || empty($login) || empty($pass) || empty($email) || empty($status) || empty($scode))
+		 {?>
+		<script>
+		  alert("All fields are required.");
+		</script>
+		 <?php }
 		 else 
 		 {
 	  $sql_in="update tbl_opr set 	name='$name',
@@ -73,7 +79,7 @@ if(isset($_REQUEST['id']))
 											//exit;
 		if(mysql_query($sql_in)or die(mysql_error()))
 		{	
-				echo  $sql_in1="Update tbl_user set	loginid='$login',
+				$sql_in1="Update tbl_user set	loginid='$login',
 											password='$pass',
 											email='$email',
 											role='$role',

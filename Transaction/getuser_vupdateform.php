@@ -361,10 +361,44 @@ if(mysql_query($sql_main) or die(mysql_error()))
 {
 $mainid=mysql_insert_id();
 
+// Link draft QR codes from form page to this arrival
+// Link draft QR codes - Step 1: Link with arrival_id (arrsub_id will be updated after sub record created)
+if($mainid > 0)
+{
+	// Get current user from session
+	$current_user = $username; // User who is posting this arrival
+	
+	// Get all draft QR codes created by this user (arrival_id=0 means draft)
+	$sql_dqr = "SELECT * FROM tbl_qr_codes WHERE linked_status='draft' AND created_by='$current_user' AND arrival_id=0";
+	$res_dqr = mysql_query($sql_dqr);
+	
+	if($res_dqr && mysql_num_rows($res_dqr) > 0)
+	{
+		while($row_dqr = mysql_fetch_array($res_dqr))
+		{
+			// Update draft QR to link with real arrival_id (but arrsub_id still 0, will update after sub created)
+			$sql_upd = "UPDATE tbl_qr_codes 
+						SET arrival_id='$mainid', linked_status='linked' 
+						WHERE qr_id='".$row_dqr['qr_id']."'";
+			mysql_query($sql_upd) or die(mysql_error());
+		}
+	}
+}
+
 $sql_sub="insert into tblarrival_sub (arrival_id, classification_id, item_id, qty_per_dc, ups_per_dc, qty_good, ups_good, qty_damage, ups_damage, exsh_qty, exsh_ups, noofbin_good, noofbin_damage,uom) values('$mainid','$n','$o','$p','$q','$s','$r','$t','$u','$v','$w','$x','$n1','$txtuom')";
 if(mysql_query($sql_sub) or die(mysql_error()))
 {
 $subid=mysql_insert_id();
+
+// Step 2: Now update QR codes with the correct arrsub_id
+if($mainid > 0 && $subid > 0)
+{
+	$current_user = $username;
+	$sql_upd_arrsub = "UPDATE tbl_qr_codes 
+					   SET arrsub_id='$subid' 
+					   WHERE arrival_id='$mainid' AND linked_status='linked' AND arrsub_id=0 AND created_by='$current_user'";
+	mysql_query($sql_upd_arrsub) or die(mysql_error());
+}
 if($god1==1)
 {
 $sql_sub_sub="insert into tblarr_sloc (arr_type, arr_tr_id, arr_id, classification_id, item_id, whid, binid, subbin, qty_good, ups_good, qty_damage, ups_damage, rowid) values('Vendor', '$mainid', '$subid', '$n', '$o', '$y', '$z', '$a1', '$b1', '$c1', '0', '0', '$rowid1')";
@@ -433,6 +467,19 @@ if($dam2==1)
 {
 $sql_sub_sub="insert into tblarr_sloc (arr_type, arr_tr_id, arr_id, classification_id, item_id, whid, binid, subbin, qty_good, ups_good, qty_damage, ups_damage, rowid) values('Vendor','$mainid','$subid','$n','$o','$t1','$u1','$v1','0','0','$w1','$x1', '$rowid5')";
 mysql_query($sql_sub_sub) or die(mysql_error());
+}
+
+// UPDATE QR CODES WITH BOTH ARRIVAL_ID AND ARRSUB_ID FOR SUBSEQUENT ITEMS
+if($mainid > 0 && $subid > 0)
+{
+	$current_user = $username;
+	// For subsequent items, QR codes have arrival_id=0 and linked_status='draft'
+	// Update both IDs and change status to 'linked'
+	$sql_upd_arrsub = "UPDATE tbl_qr_codes 
+					   SET arrival_id='$mainid', arrsub_id='$subid', linked_status='linked' 
+					   WHERE arrival_id=0 AND arrsub_id=0 AND (linked_status='draft' OR linked_status='linked') AND created_by='$current_user'";
+	mysql_query($sql_upd_arrsub) or die(mysql_error());
+	echo "<script>console.log('✅ Updated QR codes with arrival_id=$mainid + arrsub_id=$subid + status=linked for Item 2+ (user: $current_user)');</script>";
 }
 
 }
@@ -650,7 +697,7 @@ $classqry=mysql_query("select classification_id, classification from tbl_classif
 ?>
  <tr class="Dark" height="25">
            <td width="226"  align="right"  valign="middle" class="tblheading">&nbsp;Classification&nbsp;</td>
-           <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<select class="tbltext" name="txtclass" style="width:230px;" onchange="modetchk(this.value)">
+           <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<select class="tbltext" name="txtclass" style="width:230px;" onchange="modetchk(this.value); loadClassificationType(this.value);">
 <option value="" selected>--Select Classification--</option>
 	<?php while($noticia_class = mysql_fetch_array($classqry)) { ?>
 		<option value="<?php echo $noticia_class['classification_id'];?>" />   
@@ -679,7 +726,7 @@ $itemqry=mysql_query("select items_id, stores_item from tbl_stores order by stor
 
  <tr class="Light" height="30">
 <td align="right"  valign="middle" class="tblheading">UPS Good&nbsp;</td>
-<td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtupsg" type="text" size="10" class="tbltext" tabindex=""   maxlength="6" onkeypress="return isNumberKey(event)" onchange="upschk(this.value);"/>&nbsp;<font color="#FF0000">*</font>&nbsp;</td>
+<td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtupsg" type="text" size="10" class="tbltext" tabindex=""   maxlength="6" onkeypress="return isNumberKey(event)" onchange="upschk(this.value); toggleGenerateQRButton();"/>&nbsp;<font color="#FF0000">*</font>&nbsp;&nbsp;&nbsp;<button type="button" id="generateQRBtn" style="display:none; padding:6px 12px; background:#4ea1e1; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); vertical-align:middle;" onclick="openGenerateQRPage()" title="Generate QR codes for the selected item">QR Codes</button></td>
 
 <td align="right"  valign="middle" class="tblheading">Quantity Good&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtqtyg" type="text" size="10" class="tbltext" tabindex="" maxlength="7" onkeypress="return isNumberKey(event)" onchange="qtychk(this.value);">&nbsp;<font color="#FF0000">*</font>&nbsp;</td>
@@ -743,3 +790,4 @@ $itemqry=mysql_query("select items_id, stores_item from tbl_stores order by stor
 <td valign="top" align="right"><img src="../images/post.gif" border="0"style="display:inline;cursor:hand;" onclick="pform();" />&nbsp;&nbsp;</td>
 </tr>
 </table></div>
+<!-- ARRIVAL_ID: <?php echo $mainid; ?> | ARRSUB_ID: <?php echo $subid; ?> -->

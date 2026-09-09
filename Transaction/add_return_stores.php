@@ -24,7 +24,7 @@
 	//$logid="OP1";
 	//$lgnid="OP1";
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$p_id=trim($_POST['maintrid']);
 		$code=trim($_POST['code']);
@@ -282,6 +282,61 @@ function pform()
 	}
 }
 
+function openQRPage(arrival_id, arrsub_id, classification_id, item_id, ups_good)
+{
+	// Convert all parameters to integers and validate
+	arrival_id = parseInt(arrival_id) || 0;
+	arrsub_id = parseInt(arrsub_id) || 0;
+	classification_id = parseInt(classification_id) || 0;
+	item_id = parseInt(item_id) || 0;
+	ups_good = parseInt(ups_good) || 0;
+	
+	console.log('%c🔍 openQRPage called with:', 'color:blue;', {arrival_id, arrsub_id, classification_id, item_id, ups_good});
+	
+	// Validate required parameters
+	if(!arrival_id || arrival_id == 0) {
+		alert('❌ Error: Arrival ID is missing or 0.\n\nPlease save the arrival first.');
+		console.error('openQRPage: arrival_id is invalid', arrival_id);
+		return false;
+	}
+	
+	if(!arrsub_id || arrsub_id == 0) {
+		alert('❌ Error: Missing required parameters: arrsub_id\n\nPlease save the item completely before generating QR codes.');
+		console.error('openQRPage: arrsub_id is invalid', arrsub_id);
+		return false;
+	}
+	
+	if(!classification_id || classification_id == 0) {
+		alert('❌ Error: Classification ID is missing.');
+		console.error('openQRPage: classification_id is invalid', classification_id);
+		return false;
+	}
+	
+	if(!item_id || item_id == 0) {
+		alert('❌ Error: Item ID is missing.');
+		console.error('openQRPage: item_id is invalid', item_id);
+		return false;
+	}
+	
+	console.log('%c✅ All parameters validated successfully', 'color:green;font-weight:bold;');
+	
+	var qrUrl = 'generate_qr_codes.php?arrival_id=' + arrival_id + '&arrsub_id=' + arrsub_id + '&classification_id=' + classification_id + '&item_id=' + item_id + '&ups_good=' + ups_good;
+	
+	console.log('Opening QR window with URL:', qrUrl);
+	
+	var windowName = 'QR_' + arrival_id + '_' + arrsub_id + '_' + Date.now();
+	var winHandle = window.open(qrUrl, windowName, 'top=50,left=50,width=1000,height=700,scrollbars=yes,resizable=yes');
+	
+	if(!winHandle) {
+		alert('Failed to open QR window. Please check your popup blocker settings.');
+		console.error('openQRPage: Failed to open window');
+		return false;
+	}
+	
+	console.log('%c✓ QR window opened successfully', 'color:green;');
+	return true;
+}
+
 function pformedtup()
 {	
 	if(document.frmaddDepartment.date.value=="00-00-0000" || document.frmaddDepartment.date.value=="")
@@ -391,6 +446,46 @@ function pformedtup()
 			var a=formPost(document.getElementById('mainform'));
 			//alert(a);
 			showUser(a,'postingtable','mformsubedt','','','','','');
+			// Capture arrival_id and subarrival_id for QR generation and edit operations  
+			setTimeout(function() {
+				var responseHtml = document.getElementById('postingtable').innerHTML;
+				console.log('%c🔍 FULL AJAX RESPONSE:', 'color:blue;font-weight:bold;', responseHtml.substring(0, 800));
+				
+				// Extract ARRIVAL_ID - try multiple patterns
+				var arrival_id = 0;
+				var arrivalMatch = responseHtml.match(/ARRIVAL_ID:\s*(\d+)/i);
+				if(arrivalMatch && arrivalMatch[1]) {
+					arrival_id = arrivalMatch[1];
+					console.log('%c✓ Captured ARRIVAL_ID via regex: ' + arrival_id, 'color:green;');
+				} else {
+					console.error('%c✗ Could not extract ARRIVAL_ID from response', 'color:red;font-weight:bold;');
+				}
+				
+				// Extract ARRSUB_ID - try multiple patterns
+				var subarrival_id = 0;
+				var subarrivalMatch = responseHtml.match(/ARRSUB_ID:\s*(\d+)/i);
+				if(subarrivalMatch && subarrivalMatch[1]) {
+					subarrival_id = subarrivalMatch[1];
+					console.log('%c✓ Captured ARRSUB_ID via regex: ' + subarrival_id, 'color:green;');
+				} else {
+					console.error('%c✗ Could not extract ARRSUB_ID from response', 'color:red;font-weight:bold;');
+					// Fallback: search for hidden div with more flexible pattern
+					var expandedMatch = responseHtml.match(/ARRSUB_ID[^<]*?(\d+)/i);
+					if(expandedMatch && expandedMatch[1]) {
+						subarrival_id = expandedMatch[1];
+						console.log('%c✓ Captured ARRSUB_ID via fallback pattern: ' + subarrival_id, 'color:purple;');
+					}
+				}
+				
+				// Set form fields
+				document.frmaddDepartment.maintrid.value = arrival_id;
+				document.frmaddDepartment.subtrid.value = subarrival_id;
+				
+				console.log('%c📊 Final Values Set:', 'color:purple;font-weight:bold;font-size:14px;', {
+					maintrid: document.frmaddDepartment.maintrid.value,
+					subtrid: document.frmaddDepartment.subtrid.value
+				});
+			}, 500);
 		}
 	}
 }
@@ -413,11 +508,15 @@ document.frmaddDepartment.txt14.value=val;
 
 function upschk(upsval)
 {
+		console.log('%c→ upschk called, upsval:', upsval, 'color:purple;');
 		if(document.frmaddDepartment.txtitem.value == "")
 		{
 			alert("Please select Item");
 			document.frmaddDepartment.txtupsg.value="";
 		}
+		// Update button visibility when UPS Good changes
+		console.log('Calling toggleGenerateQRButton after UPS field change');
+		toggleGenerateQRButton();
 }
 
 function upschk1(upsval1)
@@ -446,6 +545,179 @@ function qtychk1(qtyval1)
 	{
 		alert("Please enter UPS Damage");
 		document.frmaddDepartment.txtqtyd.value="";
+	}
+}
+
+function toggleGenerateQRButton()
+{
+	console.log('%c=== toggleGenerateQRButton called ===', 'color:purple;font-weight:bold;');
+	try {
+		// Get values
+		var classType = (window.currentClassType || "").trim();
+		var upsGood = parseInt(document.frmaddDepartment.txtupsg.value) || 0;
+		var generateBtn = document.getElementById('generateQRBtn');
+		
+		console.log('classType:', classType);
+		console.log('upsGood:', upsGood);
+		console.log('Button element exists?', !!generateBtn);
+		
+		// If button doesn't exist, create it
+		if(!generateBtn) {
+			console.log('%c⚠ Button missing - creating it dynamically...', 'color:orange;font-weight:bold;');
+			generateBtn = createGenerateQRButton();
+			if(!generateBtn) {
+				console.warn('%c✗ Failed to create button', 'color:red;font-weight:bold;');
+				return;
+			}
+		}
+		
+		// Show button if: Classification is Roll AND UPS Good > 0
+		var shouldShow = (classType === 'Roll' && upsGood > 0);
+		console.log('Should show button?', shouldShow, '(classType === "Roll" && upsGood > 0)');
+		
+		if(shouldShow) {
+			console.log('%c✓ SHOWING button', 'color:green;font-weight:bold;');
+			generateBtn.style.display = 'inline';
+		} else {
+			console.log('%c✗ HIDING button', 'color:red;font-weight:bold;');
+			generateBtn.style.display = 'none';
+		}
+	} catch(e) {
+		console.error('%c✗ Exception in toggleGenerateQRButton:', 'color:red;font-weight:bold;', e);
+	}
+}
+
+// Dynamically create the Generate QR button
+function createGenerateQRButton()
+{
+	try {
+		console.log('Attempting to create button dynamically...');
+		
+		// Find the txtupsg input field
+		var upsGoodInput = document.querySelector('input[name="txtupsg"]');
+		if(!upsGoodInput) {
+			console.error('Cannot find txtupsg input field');
+			return null;
+		}
+		
+		// Create button element
+		var button = document.createElement('a');
+		button.href = 'javascript:void(0);';
+		button.id = 'generateQRBtn';
+		button.style.cssText = "display:none; color:#0066cc; text-decoration:underline; font-weight:bold; cursor:pointer; font-size:12px; margin-left:5px;";
+		button.onclick = function() { openGenerateQRPage(); return false; };
+		button.title = 'Generate QR codes for the selected item';
+		button.textContent = 'Generate QRs';
+		
+		// Insert button after txtupsg input
+		var separator = document.createTextNode('   ');
+		upsGoodInput.parentNode.insertBefore(separator, upsGoodInput.nextSibling);
+		upsGoodInput.parentNode.insertBefore(button, separator);
+		
+		console.log('%c✓ Button created successfully', 'color:green;font-weight:bold;');
+		return button;
+	} catch(e) {
+		console.error('Error creating button:', e);
+		return null;
+	}
+}
+
+
+function openGenerateQRPage()
+{
+	try {
+		console.log('%c=== openGenerateQRPage called ===', 'color:purple;font-weight:bold;');
+		
+		// Clear any previous sessionStorage values
+		try {
+			sessionStorage.removeItem('qr_total_weight');
+			sessionStorage.removeItem('qr_weight_timestamp');
+		} catch(e) {
+		}
+		
+		var classId = document.frmaddDepartment.txtclass.value;
+		var itemId = document.frmaddDepartment.txtitem.value;
+		var upsGood = document.frmaddDepartment.txtupsg.value;
+		var arrivalId = document.frmaddDepartment.maintrid.value;
+		var subarrivalId = document.frmaddDepartment.subtrid.value;
+		
+		console.log('%c📋 Form Field Values:', 'color:orange;font-weight:bold;');
+		console.log('classId:', classId, '| itemId:', itemId, '| upsGood:', upsGood);
+		console.log('maintrid field value:', document.frmaddDepartment.maintrid.value, '| type:', typeof document.frmaddDepartment.maintrid.value);
+		console.log('subtrid field value:', document.frmaddDepartment.subtrid.value, '| type:', typeof document.frmaddDepartment.subtrid.value);
+		console.log('arrivalId:', arrivalId, '| subarrivalId:', subarrivalId);
+		
+		// Debug: show what's in the subtrid field
+		if(!subarrivalId || subarrivalId == 0 || subarrivalId == '') {
+			console.warn('%c⚠️ ARRSUB_ID is 0/empty! This will use form mode (save_qr_temp.php)', 'color:orange;font-weight:bold;font-size:12px;');
+		}
+		
+		if(!classId || !itemId || !upsGood) {
+			alert('Please fill Classification, Item and UPS Good first');
+			return;
+		}
+		
+		// Pass arrival_id and arrsub_id to generate_qr_codes.php (for linking after save)
+		var url = 'generate_qr_codes.php?arrival_id=' + arrivalId + '&arrsub_id=' + subarrivalId + '&classification_id=' + classId + '&item_id=' + itemId + '&ups_good=' + upsGood;
+		console.log('%c🔗 Opening popup with URL:', 'color:blue;font-weight:bold;', url);
+		var popupWindow = window.open(url, 'GenerateQR', 'width=1400,height=900,left=100,top=100');
+		
+		if(!popupWindow) {
+			alert('Could not open popup window. Please check your popup blocker settings.');
+			return;
+		}
+		
+		popupWindow.focus();
+		
+		// Start monitoring for weight from QR popup
+		startSessionStorageMonitor();
+	} catch(error) {
+		alert('Error opening QR codes page: ' + error.message);
+		console.error('openGenerateQRPage error:', error);
+	}
+}
+
+function startSessionStorageMonitor() {
+	var checkCount = 0;
+	var monitorInterval = setInterval(function() {
+		try {
+			var storedWeight = sessionStorage.getItem('qr_total_weight');
+			if(storedWeight) {
+				totalWeightCallback(parseFloat(storedWeight));
+				sessionStorage.removeItem('qr_total_weight');
+				sessionStorage.removeItem('qr_weight_timestamp');
+				clearInterval(monitorInterval);
+			}
+		} catch(e) {
+		}
+		checkCount++;
+		if(checkCount > 20) {
+			clearInterval(monitorInterval);
+		}
+	}, 500);
+}
+
+function totalWeightCallback(weight) {
+	try {
+		if(!weight || isNaN(parseFloat(weight))) {
+			alert('Error: Invalid weight received. Please try again.');
+			return;
+		}
+		
+		var weightValue = parseFloat(weight).toFixed(2);
+		
+		if(!document.frmaddDepartment || !document.frmaddDepartment.txtqtyg) {
+			alert('Error: Form field not found. Please refresh the page.');
+			return;
+		}
+		
+		document.frmaddDepartment.txtqtyg.value = weightValue;
+		
+		setTimeout(function() {
+			qtychk(weightValue);
+		}, 100);
+	} catch(error) {
+		alert('Error processing weight: ' + error.message);
 	}
 }
 	
@@ -501,12 +773,114 @@ function modetchk(classval)
 {
 	if(document.frmaddDepartment.txtstage.value!="")
 	{
-	showUser(classval,'vitem','item','','','','','');
+		// Clear item and UPS Good fields when classification changes
+		document.frmaddDepartment.txtitem.value = "";
+		document.frmaddDepartment.txtuom.value = "";
+		document.frmaddDepartment.txtupsg.value = "";
+		document.frmaddDepartment.txtupsd.value = "";
+		document.frmaddDepartment.txtqtyg.value = "";
+		document.frmaddDepartment.txtqtyd.value = "";
+		
+		// Hide Generate QR button
+		var generateBtn = document.getElementById('generateQRBtn');
+		if(generateBtn) {
+			generateBtn.style.display = 'none';
+		}
+		
+		showUser(classval,'vitem','item','','','','','');
 	}
 	else
 	{
-	alert("Please select Return from Stage");
-	document.frmaddDepartment.txtclass.selectedIndex=0;
+		alert("Please select Return from Stage");
+		document.frmaddDepartment.txtclass.selectedIndex=0;
+	}
+}
+
+function loadClassificationType(classId)
+{
+	console.log('%c=== loadClassificationType called ===', 'color:blue;font-weight:bold;');
+	console.log('classId:', classId);
+	try {
+		// CLEAR ALL PREVIOUS DATA FOR NEW ITEM
+		if(classId == "") {
+			console.log('ClassId empty - clearing form');
+			window.currentClassType = "";
+			document.frmaddDepartment.txtitem.value = "";
+			document.frmaddDepartment.txtuom.value = "";
+			document.frmaddDepartment.txtupsg.value = "";
+			document.frmaddDepartment.txtupsd.value = "";
+			document.frmaddDepartment.txtqtyg.value = "";
+			document.frmaddDepartment.txtqtyd.value = "";
+			
+			// Hide button when classification is cleared
+			var btn = document.getElementById('generateQRBtn') || document.querySelector('#generateQRBtn');
+			if(btn) {
+				btn.style.cssText = "display:none !important; visibility:hidden;";
+			}
+			return;
+		}
+
+		// Check if Return from Stage is selected
+		if(document.frmaddDepartment.txtstage.value == "") {
+			alert("Please select Return from Stage first");
+			document.frmaddDepartment.txtclass.selectedIndex = 0;
+			return;
+		}
+		
+		// Only clear ITEM-RELATED fields when classification changes
+		// DON'T clear UPS Good - user should keep their entered value
+		console.log('%c→ Clearing item-related fields (Item, UoM, Qty)...', 'color:blue;');
+		document.frmaddDepartment.txtitem.value = "";
+		document.frmaddDepartment.txtuom.value = "";
+		document.frmaddDepartment.txtqtyg.value = "";
+		document.frmaddDepartment.txtqtyd.value = "";
+		// NOTE: NOT clearing txtupsg (UPS Good) or txtupsd (UPS Damage) - user keeps their entered values
+		
+		// DO NOT hide button - let user decide if they want to change UPS Good
+		// Button visibility will be controlled by toggleGenerateQRButton() when UPS value changes
+		
+		// Populate items dropdown
+		console.log('%c→ Populating Items dropdown...', 'color:blue;');
+		showUser(classId,'vitem','item','','','','','');
+		
+		// FETCH CLASSIFICATION TYPE for QR button logic
+		console.log('%c→ Fetching classification type for QR logic...', 'color:blue;');
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', 'get_classification_type.php', true);
+		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		xhr.timeout = 5000;
+		
+		console.log('Sending AJAX request to get_classification_type.php with classId:', classId);
+		
+		xhr.onreadystatechange = function() {
+			console.log('AJAX readyState:', xhr.readyState, 'status:', xhr.status);
+			if(xhr.readyState == 4 && xhr.status == 200) {
+				window.currentClassType = xhr.responseText.trim();
+				console.log('%c✓ Classification type received: ' + window.currentClassType, 'color:green;font-weight:bold;');
+				// Check button visibility based on current UPS Good value
+				toggleGenerateQRButton();
+			} else if(xhr.readyState == 4) {
+				console.error('%c✗ AJAX Error - Status: ' + xhr.status, 'color:red;font-weight:bold;');
+				console.error('Response:', xhr.responseText);
+				alert('Error loading classification type. Please try again.');
+			}
+		};
+		
+		xhr.onerror = function() {
+			console.error('%c✗ Network error', 'color:red;font-weight:bold;');
+			alert('Network error while loading classification. Please try again.');
+		};
+		
+		xhr.ontimeout = function() {
+			console.error('%c✗ Request timeout', 'color:red;font-weight:bold;');
+			alert('Request timed out. Please try again.');
+		};
+		
+		xhr.send('classification_id=' + classId);
+		
+	} catch(e) {
+		console.error('%c✗ Exception in loadClassificationType: ' + e.message, 'color:red;font-weight:bold;');
+		alert('Error: ' + e.message);
 	}
 }
 
@@ -1278,6 +1652,27 @@ function mySubmit()
 	}
 }
 
+// Initialize on page load
+window.addEventListener('load', function() {
+	try {
+		// Initialize global classification type variable
+		window.currentClassType = "";
+		
+		// Clear sessionStorage
+		try {
+			sessionStorage.removeItem('qr_total_weight');
+			sessionStorage.removeItem('qr_weight_timestamp');
+		} catch(e) {}
+		
+		// Create the button on page load
+		console.log('Page loaded - creating button dynamically...');
+		createGenerateQRButton();
+		
+		console.log('%c✓ Page loaded - ready for QR generation', 'color:green;font-weight:bold;');
+	} catch(e) {
+		console.error('Error on page load:', e);
+	}
+});
 
 </script>
 <body>
@@ -1508,7 +1903,7 @@ $classqry=mysql_query("select classification_id, classification from tbl_classif
 ?>
  <tr class="Dark" height="25">
            <td width="226"  align="right"  valign="middle" class="tblheading">&nbsp;Classification&nbsp;</td>
-           <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<select class="tbltext" name="txtclass" style="width:230px;" onchange="modetchk(this.value)">
+           <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<select class="tbltext" name="txtclass" style="width:230px;" onchange="loadClassificationType(this.value)">
 <option value="" selected>--Select Classification--</option>
 	<?php while($noticia_class = mysql_fetch_array($classqry)) { ?>
 		<option value="<?php echo $noticia_class['classification_id'];?>" />   
@@ -1530,7 +1925,7 @@ $itemqry=mysql_query("select items_id, stores_item from tbl_stores order by stor
 <input type="hidden" name="itmdchk" value="" />
  <tr class="Light" height="30">
 <td align="right"  valign="middle" class="tblheading">UPS Good&nbsp;</td>
-<td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtupsg" type="text" size="10" class="tbltext" tabindex=""   maxlength="6" onkeypress="return isNumberKey(event)" onchange="upschk(this.value);"/>&nbsp;<font color="#FF0000">*</font>&nbsp;</td>
+<td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtupsg" type="text" size="10" class="tbltext" tabindex=""   maxlength="6" onkeypress="return isNumberKey(event)" onchange="upschk(this.value); toggleGenerateQRButton();"/>&nbsp;<font color="#FF0000">*</font>&nbsp;</td>
 
 <td align="right"  valign="middle" class="tblheading">Quantity Good&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtqtyg" type="text" size="10" class="tbltext" tabindex="" maxlength="7" onkeypress="return isNumberKey(event)" onchange="qtychk(this.value);">&nbsp;<font color="#FF0000">*</font>&nbsp;</td>

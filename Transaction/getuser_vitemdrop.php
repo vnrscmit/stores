@@ -28,13 +28,12 @@ $flag=0;
 //echo $a;
 $sql_month=mysql_query("select items_id, stores_item from tbl_stores where classification_id='".$a."' and actstatus='Active' order by stores_item")or die(mysql_error());
 //$row_month=mysql_fetch_array($sql_month);
-?><td align="right" valign="middle" class="tblheading">Stores Item&nbsp;</td>
-<td align="left" valign="middle" class="tbltext">&nbsp;<select class="tbltext" name="txtitem" id="itm" style="width:230px;" onchange="classchk(this.value);" >
+?><td width="226" align="right" valign="middle" class="tblheading">Stores Item&nbsp;</td>
+<td align="left" valign="middle" class="tbltext">&nbsp;<select class="tbltext" name="txtitem" id="itm" style="width:200px;" onchange="classchk(this.value);">
 <option value="" selected>--Select Item--</option>
 	<?php while($noticia_item = mysql_fetch_array($sql_month)) { ?>
 		<option value="<?php echo $noticia_item['items_id'];?>" />   
 		<?php echo $noticia_item['stores_item'];?>
-		<?php } ?></select>&nbsp;<font color="#FF0000">*</font>&nbsp;<a href="Javascript:void(0);" onclick="openslocpop();">SLOC Lookup</a></td>
-<td align="right"  valign="middle" class="tblheading" >UoM&nbsp;</td>
-<td  align="left" valign="middle" class="tbltext" id="uom">&nbsp;<input name="txtuom" type="text" size="10" class="tbltext" tabindex="" maxlength="7" readonly="true" style="background-color:#CCCCCC"  />
-&nbsp;	</td>
+		<?php } ?></select>&nbsp;<font color="#FF0000">*</font>&nbsp;<a href="Javascript:void(0);" onclick="openslocpop();" style="font-size:11px;">(Sloc Lookup)</a></td>
+<td width="226" align="right" valign="middle" class="tblheading">UoM&nbsp;</td>
+<td align="left" valign="middle" class="tbltext" id="uom">&nbsp;<input name="txtuom" type="text" size="10" class="tbltext" tabindex="" maxlength="7" readonly="true" style="background-color:#CCCCCC" />&nbsp;	</td>

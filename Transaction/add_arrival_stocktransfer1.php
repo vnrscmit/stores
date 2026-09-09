@@ -25,7 +25,7 @@
 	$tid = $_REQUEST['t_id'];
 	}*/
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		/*$id=trim($_POST['txtid']);
 		$date=trim($_POST['date']);

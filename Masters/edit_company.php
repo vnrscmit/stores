@@ -20,35 +20,31 @@
 
 	require_once("../include/config.php");
 	require_once("../include/connection.php");
-if(isset($_REQUEST['id']))
-	{
-	$id = $_REQUEST['id'];
-	}
 
-	if(isset($_POST['frm_action'])=='submit')
+	$id = isset($_POST['id']) ? $_POST['id'] : (isset($_REQUEST['id']) ? $_REQUEST['id'] : 41);
+
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
-		//$name=trim($_POST['txtname']);
-		
-		
-		$cname=trim($_POST['txtcname']);
-		$address=trim($_POST['txtadd']);
-		$ccity=trim($_POST['ccity']);
-		$cpin=trim($_POST['cpin']);
-		$cstate=trim($_POST['cstate']);
-		$cphno=trim($_POST['cphno']);
-		$cphno1=trim($_POST['cphno1']);
-		$plant=trim($_POST['txtplant']);
-		$pcity=trim($_POST['pcity']);
-		$ppin=trim($_POST['ppin']);
-		$pstate=trim($_POST['pstate']);
-		$pphno=trim($_POST['pphno']);
-		$pphno1=trim($_POST['pphno1']);
-		$pstd=trim($_POST['pstd']);
-        $cstd=trim($_POST['cstd']);
-		$licenceno=trim($_POST['txtlcn']);
-		$tin=trim($_POST['txttin']);
-		$cst=trim($_POST['txtcstno']);
-		$parentimage1=trim($_FILES['brouse']['name']);
+		$cname = isset($_POST['txtcname']) ? trim($_POST['txtcname']) : '';
+		$address = isset($_POST['txtadd']) ? trim($_POST['txtadd']) : '';
+		$ccity = isset($_POST['ccity']) ? trim($_POST['ccity']) : '';
+		$cpin = isset($_POST['cpin']) ? trim($_POST['cpin']) : '';
+		$cstate = isset($_POST['cstate']) ? trim($_POST['cstate']) : '';
+		$cphno = isset($_POST['cphno']) ? trim($_POST['cphno']) : '';
+		$cphno1 = isset($_POST['cphno1']) ? trim($_POST['cphno1']) : '';
+		$plant = isset($_POST['txtplant']) ? trim($_POST['txtplant']) : '';
+		$plantcode = isset($_POST['txtplantcode']) ? trim($_POST['txtplantcode']) : '';
+		$pcity = isset($_POST['pcity']) ? trim($_POST['pcity']) : '';
+		$ppin = isset($_POST['ppin']) ? trim($_POST['ppin']) : '';
+		$pstate = isset($_POST['pstate']) ? trim($_POST['pstate']) : '';
+		$pphno = isset($_POST['pphno']) ? trim($_POST['pphno']) : '';
+		$pphno1 = isset($_POST['pphno1']) ? trim($_POST['pphno1']) : '';
+		$pstd = isset($_POST['pstd']) ? trim($_POST['pstd']) : '';
+        $cstd = isset($_POST['cstd']) ? trim($_POST['cstd']) : '';
+		$licenceno = isset($_POST['txtlcn']) ? trim($_POST['txtlcn']) : '';
+		$tin = isset($_POST['txttin']) ? trim($_POST['txttin']) : '';
+		$cst = isset($_POST['txtcstno']) ? trim($_POST['txtcstno']) : '';
+		$parentimage1 = isset($_FILES['brouse']['name']) ? trim($_FILES['brouse']['name']) : '';
 		
 		 if($parentimage1<>"")
 		{
@@ -68,6 +64,7 @@ if(isset($_REQUEST['id']))
 											cstd='$cstd',
 											pstd='$pstd',
 											plant='$plant',
+											plantcode='$plantcode',
 											pcity='$pcity',
 											pphone='$pphno',
 											pphone1='$pphno1',
@@ -77,9 +74,8 @@ if(isset($_REQUEST['id']))
 											tin='$tin',
 										    cst_no='$cst'
 										    where id='$id'";
-											//exit;
-											
-		if(mysql_query($sql_in)or die(mysql_error()))
+										
+		if(mysql_query($sql_in) or die(mysql_error()))
 		{		
 			echo "<script>window.location='companyhome.php'</script>";	
 		}
@@ -146,76 +142,21 @@ function onloadfocus()
       }	
 
 	function mySubmit()
-{ 
-	if(document.frmaddDept.txtcname.value=="")
-	{
-	alert("Define Company Name ");
-	document.frmaddDept.txtcname.focus();
-	return false;
-	}
-	
-	if(document.frmaddDept.txtcname.value.charCodeAt() == 32)
-	{
-	alert("Company Name cannot start with space.");
-	document.frmaddDept.txtcname.focus();
-	return false;
-	}
-	
-	
-	
-	
-	if(document.frmaddDept.txt.value!="")
-	{
-	if(document.frmaddDept.brouse.value!="")
-	{
-	alert("Attach company logo.");
-	document.frmaddDept.brouse.focus();
-	return false;
-	}
-	}		
-	if(document.frmaddDept.txtadd.value=="")
-	{
-	alert("Define Address. ");
-	document.frmaddDept.txtadd.focus();
-	return false;
-	}
-	if(document.frmaddDept.txtadd.value.charCodeAt() == 32)
-	{
-	alert("Address  cannot start with space.");
-	document.frmaddDept.txtadd.focus();
-	return false;
-	}
-	
-	if(document.frmaddDept.ccity.value=="")
-	{
-		alert("Enter City/town/village");
-		document.frmaddDept.ccity.focus();
-		return false;
-	}
-	
-	if(document.frmaddDept.ccity.value.charCodeAt() == 32)
-	{
-		alert("City cannot start with space.");
-		document.frmaddDept.ccity.focus();
-		return false;
-	}
-	
-	if(document.frmaddDept.cpin.value=="")
-	{
-		alert("Please enter Pin Code");
-		document.frmaddDept.cpin.focus();
-		return false;
-	}
-	if(document.frmaddDept.cpin.value.charCodeAt() == 32)
-	{
-		alert("pin cannot start with space.");
-		document.frmaddDept.cpin.focus();
-		return false;
-	}
-	if(document.frmaddDept.cpin.value.length < 6 )
+	{ 
+		if(document.frmaddDept.txtcname.value=="")
 		{
-			alert("Pin Code can not less than six digits");
-			document.frmaddDept.cpin.focus();
+		alert("Define Company Name ");
+		document.frmaddDept.txtcname.focus();
+		return false;
+		}
+		if(document.frmaddDept.txtadd.value=="")
+		{
+		alert("Define Address. ");
+		document.frmaddDept.txtadd.focus();
+		return false;
+		}
+		return true;
+	}
 			return(false);
 		}
 	
@@ -397,74 +338,13 @@ return true;
 
 
 <body>
+
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav"> <li><a href="index1.php"> Masters </a>
-              <ul>
-                <li><a href="home_classification.php" >&nbsp;Classification&nbsp;Master</a></li>
-                <li><a href="stores_home.php" >&nbsp;Item&nbsp;Master</a></li>
-				<li><a href="home_country.php" >&nbsp;Country&nbsp;Master</a></li>
-				<li><a href="home_country.php" >&nbsp;State&nbsp;Master</a></li>
-                <li><a href="party_Masterhome.php" >&nbsp;Party&nbsp;Master</a></li>
-                <li><a href="selectbin.php" >&nbsp;SLOC&nbsp;Master</a></li>
-                <li><a href="role_home.php" >&nbsp;e-indent&nbsp;Master</a></li>
-                <li><a href="operator_home.php" >&nbsp;Operator&nbsp;Master</a></li>
-				<li><a href="viewers_home.php" >&nbsp;Viewers&nbsp;Master</a></li>
-				<li><a href="home_report.php" >&nbsp;Reports&nbsp;Master</a></li>
-                <li><a href="companyhome.php" >&nbsp;Parameters&nbsp;Master</a></li>
-                <li><a href="current_year.php" >&nbsp;Year&nbsp;Management&nbsp;Master</a></li>
-              </ul>
-            </li>
-            <li><a href="index1.php">Transactions </a>
-             <ul>
-                <li><a href="../Transaction/add_g.php" >&nbsp;Good&nbsp;to&nbsp;Damage</a></li>
-                <li><a href="../Transaction/add_d.php" >&nbsp;Damage&nbsp;to&nbsp;Good</a></li>
-                <li><a href="../Transaction/add_shortage.php" >&nbsp;Excess/Shortage</a></li>
-                <li><a href="../Transaction/home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-				<li><a href="../Transaction/home_interitem.php" >&nbsp;Inter&nbsp;Item&nbsp;Transfer</a></li>
-				<li><a href="../Transaction/home_openstock.php" >&nbsp;Opening&nbsp;Stock</a></li>
-              </ul>
-            </li>
-            <li><a href="index1.php"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-              </ul>
-            </li>
-            <li>
-            <a href="index1.php">Utility </a>
-			<ul><li><a href=" Javascript:void(0)" onclick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onclick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>  
-<li><a href=" Javascript:void(0)" onclick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li>
-			<li><a href=" Javascript:void(0)" onclick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-              </ul>
-            </li>
-			</ul>
-            </div>
-            </div> <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top">
-                <li> <a href="../Transaction/adminprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="../Transaction/help.php">Help </a>| </li>
-                <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>
@@ -489,6 +369,7 @@ return true;
    	  <td align="center" colspan="4" >
 	  <form name="frmaddDept" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>" enctype="multipart/form-data" > 
 	 <input name="frm_action" value="submit" type="hidden">
+	 <input name="id" value="<?php echo $id; ?>" type="hidden">
 	  <input name="txt" value="" type="hidden"> 
 	  <br />
 <table  border="0" cellspacing="0" cellpadding="0" align="center" width="974"  style="border-collapse:collapse">
@@ -655,12 +536,16 @@ $row_qry=mysql_fetch_array($sql_qry);
  <tr class="Light" height="25">
 <td width="184"  align="right"  valign="middle" class="tblheading">CST&nbsp;</td>
 <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<input name="txtcstno" type="text" size="20" class="tbltext" tabindex="0" maxlength="20" value="<?php echo $row_qry['cst_no'];?>" onChange="f14(this.value);"/>&nbsp;<font color="#FF0000">*</font>&nbsp;</td></tr>
+
+<tr class="Dark" height="25">
+<td width="184"  align="right"  valign="middle" class="tblheading">Plant Code&nbsp;</td>
+<td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<input name="txtplantcode" type="text" size="20" class="tbltext" tabindex="0" maxlength="20" value="<?php echo $row_qry['plantcode'];?>"/>&nbsp;</td></tr>
  
 </table>
 
 <table align="center" width="650" cellpadding="5" cellspacing="5" border="0" >
 <tr >
-<td valign="top" align="center"><a href="companyhome.php"><img src="../images/back.gif" border="0"  style="display:inline;cursor:hand;"/></a>&nbsp;<a href="javascript:document.frmaddDept.reset()"></a>&nbsp;<input name="Submit" type="image" src="../images/update.gif" alt="Submit Value" onClick="return mySubmit();"  border="0" style="display:inline;cursor:hand;"></td>
+<td valign="top" align="center"><a href="companyhome.php"><img src="../images/back.gif" border="0"  style="display:inline;cursor:hand;"/></a>&nbsp;<input type="button" value="Reset" onclick="document.frmaddDept.reset();" style="padding:5px 12px; margin:0 5px; cursor:pointer;"/>&nbsp;<input name="Submit" type="submit" value="Update" onclick="return mySubmit();" style="padding:5px 15px; background:#4ea1e1; color:white; border:1px solid #333; cursor:pointer; font-weight:bold;"></td>
 </tr>
 </table>
 </td><td width="30"></td>

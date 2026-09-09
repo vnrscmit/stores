@@ -23,7 +23,7 @@
 
 	//$logid="OP1";
 	//$lgnid="OP1";
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		
 		
@@ -320,7 +320,20 @@ function pform()
 		{
 		//alert("hi");
 		var a=formPost(document.getElementById('mainform'));
-		showUser(a,'postingtable','mform','','','','','');
+		showUser(a,'postingtable','mformsubedt','','','','','');
+		
+		// Auto-clear form for next item after short delay
+		setTimeout(function() {
+			// Capture arrival_id from the HTML response comment
+			var html = document.getElementById('postingsubtable').innerHTML;
+			var match = html.match(/ARRIVAL_ID:\s*(\d+)/);
+			if(match && match[1]) {
+				var arrival_id = match[1];
+				document.frmaddDepartment.maintrid.value = arrival_id;
+				console.log('%c✓ Updated: arrival_id=' + arrival_id, 'color:green;font-weight:bold;');
+			}
+			clearFormForNextItem();
+		}, 800);
 		}  
 	}
 }
@@ -613,6 +626,406 @@ function qtychk1(qtyval1)
 		document.frmaddDepartment.txtqtyg.focus();
 	}*/
 }
+
+// Load classification type when classification changes
+// This combines modetchk (Stores Item population) + QR button logic
+function loadClassificationType(classId)
+{
+	console.log('%c=== loadClassificationType called ===', 'color:blue;font-weight:bold;');
+	console.log('classId:', classId);
+	try {
+		
+		// FIRST: Check if Mode of Transit is selected (required for items population)
+		if(document.frmaddDepartment.txt11.value=="") {
+			alert("Please select Mode of Transit first");
+			document.frmaddDepartment.txtclass.selectedIndex=0;
+			return;
+		}
+		
+		// CLEAR ALL PREVIOUS DATA FOR NEW ITEM
+		if(classId == "") {
+			console.log('ClassId empty - clearing form');
+			window.currentClassType = "";
+			document.frmaddDepartment.txtitem.value = "";
+			document.frmaddDepartment.txtupsg.value = "";
+			document.frmaddDepartment.txtqtyg.value = "";
+			document.frmaddDepartment.txtupsd.value = "";
+			document.frmaddDepartment.txtqtyd.value = "";
+			document.frmaddDepartment.txtexshups.value = "";
+			document.frmaddDepartment.txtexshqty.value = "";
+			
+			// Clear sessionStorage for new item
+			clearSessionStorageForNewItem();
+			
+			var btn = document.getElementById('generateQRBtn');
+			if(btn) {
+				btn.style.cssText = "display:none !important; visibility:hidden;";
+			}
+			return;
+		}
+
+		clearSessionStorageForNewItem();
+		
+		// POPULATE STORES ITEMS DROPDOWN (like old modetchk was doing)
+		console.log('%c→ Populating Stores Items dropdown...', 'color:blue;');
+		showUser(classId,'vitem','item','','','','','');
+		
+		// FETCH CLASSIFICATION TYPE for QR button logic
+		console.log('%c→ Fetching classification type for QR logic...', 'color:blue;');
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', 'get_classification_type.php', true);
+		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		xhr.timeout = 5000;
+		
+		console.log('Sending AJAX request to get_classification_type.php with classId:', classId);
+		
+		xhr.onreadystatechange = function() {
+			console.log('AJAX readyState:', xhr.readyState, 'status:', xhr.status);
+			if(xhr.readyState == 4 && xhr.status == 200) {
+				window.currentClassType = xhr.responseText.trim();
+				console.log('%c✓ Classification type received: ' + window.currentClassType, 'color:green;font-weight:bold;');
+				toggleGenerateQRButton();
+			} else if(xhr.readyState == 4) {
+				console.error('%c✗ AJAX Error - Status: ' + xhr.status, 'color:red;font-weight:bold;');
+				console.error('Response:', xhr.responseText);
+				alert('Error loading classification type. Please try again.');
+			}
+		};
+		
+		xhr.onerror = function() {
+			console.error('%c✗ Network error', 'color:red;font-weight:bold;');
+			alert('Network error while loading classification. Please try again.');
+		};
+		
+		xhr.ontimeout = function() {
+			console.error('%c✗ Request timeout', 'color:red;font-weight:bold;');
+			alert('Request timed out. Please try again.');
+		};
+		
+		xhr.send('classification_id=' + classId);
+	} catch(e) {
+		alert('Error: ' + e.message);
+	}
+}
+
+// Clear sessionStorage for new item entry
+function clearSessionStorageForNewItem()
+{
+	try {
+		sessionStorage.removeItem('qr_total_weight');
+		sessionStorage.removeItem('qr_weight_timestamp');
+	} catch(e) {
+	}
+}
+
+// Clear form for next item entry
+function clearFormForNextItem()
+{
+	console.log('%c=== clearFormForNextItem called ===', 'color:brown;font-weight:bold;');
+	try {
+		
+		// Reset all field values
+		document.frmaddDepartment.txtclass.value = "";
+		document.frmaddDepartment.txtitem.value = "";
+		document.frmaddDepartment.txtupsdc.value = "";
+		document.frmaddDepartment.txtqtydc.value = "";
+		document.frmaddDepartment.txtupsg.value = "";
+		document.frmaddDepartment.txtqtyg.value = "";
+		document.frmaddDepartment.txtupsd.value = "";
+		document.frmaddDepartment.txtqtyd.value = "";
+		document.frmaddDepartment.txtuom.value = "";
+		document.frmaddDepartment.txtexshups.value = "";
+		document.frmaddDepartment.txtexshqty.value = "";
+		console.log('Form fields cleared');
+		
+		// Reset state variables
+		window.currentClassType = "";
+		clearSessionStorageForNewItem();
+		console.log('State cleared. currentClassType reset to empty');
+		
+		// Hide button - or recreate if missing (button lost due to AJAX response replacing DOM)
+		var btn = document.getElementById('generateQRBtn');
+		if(!btn) {
+			console.warn('%c⚠ Button missing from DOM after AJAX - recreating...', 'color:orange;font-weight:bold;');
+			btn = createGenerateQRButton();
+			if(btn) {
+				console.log('%c✓ Button recreated after form clear', 'color:green;font-weight:bold;');
+				btn.style.cssText = "display:none !important; visibility:hidden;";
+			}
+		} else {
+			btn.style.cssText = "display:none !important; visibility:hidden;";
+			console.log('Button hidden');
+		}
+		
+		// Re-attach onchange event listener to classification dropdown
+		// (CRITICAL: AJAX replaces HTML and loses the inline onchange handler)
+		var classDropdown = document.frmaddDepartment.txtclass;
+		if(classDropdown) {
+			// Remove any existing listeners first
+			var newDropdown = classDropdown.cloneNode(true);
+			classDropdown.parentNode.replaceChild(newDropdown, classDropdown);
+			document.frmaddDepartment.txtclass = newDropdown;
+			
+			// Attach fresh event listener
+			newDropdown.addEventListener('change', function() {
+				loadClassificationType(this.value);
+			});
+			console.log('%c✓ Event listener re-attached to classification dropdown', 'color:green;font-weight:bold;');
+		}
+		
+		// Re-attach onchange event listener to UPS Good field
+		// (CRITICAL: AJAX replaces HTML and loses the inline onchange handler)
+		var upsGoodField = document.frmaddDepartment.txtupsg;
+		if(upsGoodField) {
+			// Remove any existing listeners first
+			var newUpsGoodField = upsGoodField.cloneNode(true);
+			upsGoodField.parentNode.replaceChild(newUpsGoodField, upsGoodField);
+			document.frmaddDepartment.txtupsg = newUpsGoodField;
+			
+			// Attach fresh event listener for UPS Good
+			newUpsGoodField.addEventListener('change', function() {
+				upschk(this.value);
+				toggleGenerateQRButton();
+			});
+			console.log('%c✓ Event listener re-attached to UPS Good field', 'color:green;font-weight:bold;');
+		}
+		
+		// Focus on classification field
+		setTimeout(function() {
+			document.frmaddDepartment.txtclass.focus();
+			console.log('Focus set to txtclass field');
+		}, 100);
+		
+	} catch(e) {
+		console.error('Error in clearFormForNextItem:', e);
+	}
+}
+
+// Toggle Generate QR button visibility
+function toggleGenerateQRButton()
+{
+	console.log('%c=== toggleGenerateQRButton called ===', 'color:purple;font-weight:bold;');
+	try {
+		// Get values
+		var classType = (window.currentClassType || "").trim();
+		var upsGood = parseInt(document.frmaddDepartment.txtupsg.value) || 0;
+		var generateBtn = document.getElementById('generateQRBtn');
+		
+		console.log('classType:', classType);
+		console.log('upsGood:', upsGood);
+		console.log('Button element exists?', !!generateBtn);
+		
+		// If button doesn't exist in DOM, try to recreate it
+		if(!generateBtn) {
+			console.log('%c⚠ Button missing from DOM - attempting to recreate...', 'color:orange;font-weight:bold;');
+			generateBtn = createGenerateQRButton();
+			if(!generateBtn) {
+				console.warn('%c✗ Failed to recreate button', 'color:red;font-weight:bold;');
+				return;
+			}
+		}
+		
+		// Show button if: Classification is Roll AND UPS Good > 0
+		var shouldShow = (classType === 'Roll' && upsGood > 0);
+		console.log('Should show button?', shouldShow, '(classType === "Roll" && upsGood > 0)');
+		
+		if(shouldShow) {
+			console.log('%c✓ SHOWING button', 'color:green;font-weight:bold;');
+			generateBtn.style.cssText = "display:inline !important; color:#0066cc; text-decoration:underline; font-weight:bold; cursor:pointer; font-size:12px;";
+		} else {
+			console.log('%c✗ HIDING button', 'color:red;font-weight:bold;');
+			generateBtn.style.cssText = "display:none !important;";
+		}
+	} catch(e) {
+		console.error('%c✗ Exception in toggleGenerateQRButton:', 'color:red;font-weight:bold;', e);
+	}
+}
+
+// Create the Generate QR button if it doesn't exist
+function createGenerateQRButton()
+{
+	try {
+		console.log('Attempting to create button...');
+		
+		// Find the txtupsg input field
+		var upsGoodInput = document.querySelector('input[name="txtupsg"]');
+		if(!upsGoodInput) {
+			console.error('Cannot find txtupsg input field');
+			return null;
+		}
+		
+		// Create button element
+		var button = document.createElement('button');
+		button.type = 'button';
+		button.id = 'generateQRBtn';
+		button.style.cssText = "display:none; padding:6px 12px; background:#4ea1e1; color:white; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); margin-left:5px;";
+		button.onclick = function() { openGenerateQRPage(); };
+		button.title = 'Generate QR codes for the selected item';
+		button.textContent = 'QR Codes';
+		
+		// Insert button after txtupsg input
+		upsGoodInput.parentNode.insertBefore(button, upsGoodInput.nextSibling);
+		upsGoodInput.parentNode.insertBefore(document.createTextNode('  '), upsGoodInput.nextSibling);
+		
+		console.log('%c✓ Button recreated successfully', 'color:green;font-weight:bold;');
+		return button;
+	} catch(e) {
+		console.error('Error creating button:', e);
+		return null;
+	}
+}
+
+// Initialize form fields
+function initializeFormFields()
+{
+	try {
+		// Initialize global variable for classification type
+		window.currentClassType = "";
+		
+		// Clear sessionStorage
+		try {
+			sessionStorage.removeItem('qr_total_weight');
+			sessionStorage.removeItem('qr_weight_timestamp');
+		} catch(e) {
+		}
+		
+		// Hide generate QR button on page load using cssText
+		var generateBtn = document.getElementById('generateQRBtn');
+		if(generateBtn) {
+			generateBtn.style.cssText = "display:none !important; visibility:hidden;";
+		}
+		
+		// Check if form exists
+		if(!document.frmaddDepartment) {
+			return;
+		}
+	} catch(e) {
+	}
+}
+
+// Monitor sessionStorage for weight from popup callback fallback
+var sessionStorageMonitorInterval = null;
+function startSessionStorageMonitor() {
+	// Check every 500ms for weight in sessionStorage (up to 10 seconds)
+	var checkCount = 0;
+	sessionStorageMonitorInterval = setInterval(function() {
+		try {
+			var storedWeight = sessionStorage.getItem('qr_total_weight');
+			if(storedWeight) {
+				totalWeightCallback(parseFloat(storedWeight));
+				// Clear the stored value
+				sessionStorage.removeItem('qr_total_weight');
+				sessionStorage.removeItem('qr_weight_timestamp');
+				clearInterval(sessionStorageMonitorInterval);
+			}
+		} catch(e) {
+		}
+		checkCount++;
+		if(checkCount > 20) { // 20 * 500ms = 10 seconds timeout
+			clearInterval(sessionStorageMonitorInterval);
+		}
+	}, 500);
+}
+
+// Receive total weight from popup and populate it in txtqtyg field
+function totalWeightCallback(weight) {
+	try {
+		if(!weight || isNaN(parseFloat(weight))) {
+			alert('Error: Invalid weight received. Please try again.');
+			return;
+		}
+		
+		var weightValue = parseFloat(weight).toFixed(2);
+		
+		// Check if form exists
+		if(!document.frmaddDepartment || !document.frmaddDepartment.txtqtyg) {
+			alert('Error: Form field not found. Please refresh the page.');
+			return;
+		}
+		
+		// Populate the field
+		document.frmaddDepartment.txtqtyg.value = weightValue;
+		
+		// Stop sessionStorage monitor since we got the callback
+		if(sessionStorageMonitorInterval) {
+			clearInterval(sessionStorageMonitorInterval);
+		}
+		
+		// Trigger quantity check to auto-calculate Excess/Shortage
+		setTimeout(function() {
+			qtychk(weightValue);
+		}, 100);
+		
+		// Show SLOC bins section
+		setTimeout(function() {
+			showslocbins();
+		}, 200);
+	} catch(error) {
+		alert('Error processing weight: ' + error.message);
+	}
+}
+
+function openGenerateQRPage()
+{
+	try {
+		// Clear any previous sessionStorage values
+		try {
+			sessionStorage.removeItem('qr_total_weight');
+			sessionStorage.removeItem('qr_weight_timestamp');
+		} catch(e) {
+		}
+		
+		var classId = document.frmaddDepartment.txtclass.value;
+		var itemId = document.frmaddDepartment.txtitem.value;
+		var upsGood = document.frmaddDepartment.txtupsg.value;
+		
+		if(!classId || !itemId || !upsGood) {
+			alert('Please fill Classification, Item and UPS Good first');
+			return;
+		}
+		
+		// For now, arrival_id and arrsub_id are null (will be filled after saving arrival)
+		var url = 'generate_qr_codes.php?arrival_id=0&arrsub_id=0&classification_id=' + classId + '&item_id=' + itemId + '&ups_good=' + upsGood;
+		var popupWindow = window.open(url, 'GenerateQR', 'width=1400,height=900,left=100,top=100');
+		
+		if(!popupWindow) {
+			alert('Could not open popup window. Please check your popup blocker settings.');
+			return;
+		}
+		
+		popupWindow.focus();
+	} catch(error) {
+		alert('Error opening QR codes page: ' + error.message);
+	}
+}
+
+// Call initialization when page loads and setup monitoring
+console.log('Setting up page load event listeners...');
+window.addEventListener('load', function() {
+	initializeFormFields();
+	
+	// Attach event listener to classification dropdown (for first-time load)
+	var classDropdown = document.frmaddDepartment.txtclass;
+	if(classDropdown) {
+		classDropdown.addEventListener('change', function() {
+			loadClassificationType(this.value);
+		});
+		console.log('%c✓ Classification dropdown event listener attached on page load', 'color:green;font-weight:bold;');
+	}
+	
+	// Attach event listener to UPS Good field (for first-time load)
+	var upsGoodField = document.frmaddDepartment.txtupsg;
+	if(upsGoodField) {
+		upsGoodField.addEventListener('change', function() {
+			upschk(this.value);
+			toggleGenerateQRButton();
+		});
+		console.log('%c✓ UPS Good field event listener attached on page load', 'color:green;font-weight:bold;');
+	}
+	
+	// Start monitoring for sessionStorage fallback (in case popup callback fails)
+	startSessionStorageMonitor();
+});
 
 function showslocbins()
 {
@@ -1557,69 +1970,13 @@ return true;
 
 
 <body>
+
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav">
-             <li><a href="#">Transactions </a>
-              <ul>
-                <li><a href="arrival_home.php" >&nbsp;Arrival</a></li>
-                <li><a href="issue_home.php" >&nbsp;Issue</a></li>
-                <li><a href="c_c_home.php" >&nbsp;Captive&nbsp;Consumption</a></li>
-				<li><a href="add_discard.php" >&nbsp;Material&nbsp;Discard</a></li>
-				<li><a href="home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-                <li><a href="add_arrival.php" >&nbsp;SLOC&nbsp;Updation</a></li>
-				<li><a href="reorder.php" >&nbsp;Order&nbsp;Placement&nbsp;at&nbsp;Reorder</a></li>
-             </ul>
-            </li>
-             <li><a href="#"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li> 
-				<?php
-			  if($role == "admin")
-			  {
-			  ?>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-				<?php
-				}
-				?>
-              </ul>
-            </li><li>
-            <a href="#">Utility </a>
-             <ul>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_bincard.php','WelCome','top=10,left=50,width=950,height=800,scrollbars=yes')" >&nbsp;Sub-Bin&nbsp;Card</a></li>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li> <?php if($role == "admin")
-			  {
-			  ?>
-			  <li><a href=" Javascript:void(0)" onClick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-			  <?php }?>
-           </ul>   </li>
-            </ul>
-            </div>
-            </div>
-            <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top"> <li> <a href="operprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="help.php">Help </a>| </li>  <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>
@@ -1789,7 +2146,7 @@ $classqry=mysql_query("select classification_id, classification from tbl_classif
 ?>
  <tr class="Dark" height="25">
            <td width="226"  align="right"  valign="middle" class="tblheading">&nbsp;Classification&nbsp;</td>
-           <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<select class="tbltext" name="txtclass" style="width:230px;" onchange="modetchk(this.value)">
+           <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<select class="tbltext" name="txtclass" style="width:230px;" onchange="loadClassificationType(this.value)">
 <option value="" selected>--Select Classification--</option>
 	<?php while($noticia_class = mysql_fetch_array($classqry)) { ?>
 		<option value="<?php echo $noticia_class['classification_id'];?>" />   
@@ -1818,7 +2175,7 @@ $itemqry=mysql_query("select items_id, stores_item from tbl_stores order by stor
 
  <tr class="Light" height="30">
 <td align="right"  valign="middle" class="tblheading">UPS Good&nbsp;</td>
-<td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtupsg" type="text" size="10" class="tbltext" tabindex=""   maxlength="5" onkeypress="return isNumberKey(event)" onchange="upschk(this.value);"/>&nbsp;<font color="#FF0000">*</font>&nbsp;</td>
+<td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtupsg" type="text" size="10" class="tbltext" tabindex=""   maxlength="5" onkeypress="return isNumberKey(event)" onchange="upschk(this.value); toggleGenerateQRButton();"/>&nbsp;<font color="#FF0000">*</font>&nbsp;&nbsp;&nbsp;<a href="javascript:void(0);" id="generateQRBtn" style="display:none; color:#0066cc; text-decoration:underline; font-weight:bold; cursor:pointer; font-size:12px;" onclick="openGenerateQRPage()" title="Generate QR codes for the selected item">Generate QRs</a></td>
 
 <td align="right"  valign="middle" class="tblheading">Quantity Good&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext">&nbsp;<input name="txtqtyg" type="text" size="10" class="tbltext" tabindex="" maxlength="7" onkeypress="return isNumberKey(event)" onchange="qtychk(this.value);">&nbsp;<font color="#FF0000">*</font>&nbsp;</td>

@@ -24,7 +24,7 @@
 	{
 	$pid = $_REQUEST['p_id'];
 	}
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$class=trim($_POST['txtclass']);
 		$item=trim($_POST['txtitem']);

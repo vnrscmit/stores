@@ -30,7 +30,7 @@ if(isset($_REQUEST['yrsid']))
 	$month = $_REQUEST['month'];
 	}*/
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		/*$locdate=$_POST['locdate'];
 		//$empid=trim($_POST['empi']);

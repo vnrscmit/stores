@@ -26,7 +26,7 @@ $res_rt=mysql_query("select * from tbl_roles");
 	 
 	 $role='eindent';
 	$status='active';
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		
 		$name=trim($_POST['txtname']);

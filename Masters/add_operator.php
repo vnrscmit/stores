@@ -31,7 +31,7 @@
 	 $role='operator';
 	//$status='active';
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$name=trim($_POST['txtname']);
 		$login=trim($_POST['txtId']);

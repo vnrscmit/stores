@@ -28,7 +28,7 @@ session_start();
 	{
 	$binid = $_REQUEST['binid'];
 	}
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 
 ?>
 

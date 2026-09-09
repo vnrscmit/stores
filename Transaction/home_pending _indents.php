@@ -267,6 +267,11 @@ function formPost(top_element){
 
 </script>
 <body>
+
+<table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
+  <tr>
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
     <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">

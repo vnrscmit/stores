@@ -28,7 +28,7 @@ if(isset($_REQUEST['id']))
 	//exit;
 	 $role='eindent';
 	//$status='active';
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		
 		$name=trim($_POST['txtname']);

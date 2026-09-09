@@ -29,7 +29,7 @@
 	{
 	$id = $_GET['items_id'];
 	}
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$code=trim($_POST['txtcode']);
 		$date=trim($_POST['date']);

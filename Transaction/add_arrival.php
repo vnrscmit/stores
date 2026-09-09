@@ -89,7 +89,7 @@ while($row_tbl=mysql_fetch_array($sql_tbl))
 
 
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$sdate1=trim($_POST['sdate']);
 		$edate1=trim($_POST['edate']);
@@ -229,69 +229,13 @@ return true;
 }
 </script>
 <body>
+
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav">
-             <li><a href="#">Transactions </a>
-              <ul>
-                <li><a href="arrival_home.php" >&nbsp;Arrival</a></li>
-                <li><a href="issue_home.php" >&nbsp;Issue</a></li>
-                <li><a href="c_c_home.php" >&nbsp;Captive&nbsp;Consumption</a></li>
-				<li><a href="add_discard.php" >&nbsp;Material&nbsp;Discard</a></li>
-				<li><a href="home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-                <li><a href="add_arrival.php" >&nbsp;SLOC&nbsp;Updation</a></li>
-				<li><a href="reorder.php" >&nbsp;Order&nbsp;Placement&nbsp;at&nbsp;Reorder</a></li>
-             </ul>
-            </li>
-             <li><a href="#"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li> 
-				<?php
-			  if($role == "admin")
-			  {
-			  ?>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-				<?php
-				}
-				?>
-              </ul>
-            </li><li>
-            <a href="#">Utility </a>
-             <ul>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_bincard.php','WelCome','top=10,left=50,width=950,height=800,scrollbars=yes')" >&nbsp;Sub-Bin&nbsp;Card</a></li>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li> <?php if($role == "admin")
-			  {
-			  ?>
-			  <li><a href=" Javascript:void(0)" onClick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-			  <?php }?>
-           </ul>   </li>
-            </ul>
-            </div>
-            </div>
-            <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top"> <li> <a href="adminprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="help.php">Help </a>| </li>  <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>
@@ -380,9 +324,9 @@ $pagination = "";
 		$pagination .= "<div class=\"pagination\" align=\"right\" style=\"width:805px\">";
 		//previous button
 		if ($page > 1) 
-			$pagination.= " <a href=\"$targetpage?page=$prev\">« previous </a> ";
+			$pagination.= " <a href=\"$targetpage?page=$prev\">ï¿½ previous </a> ";
 		else
-			$pagination.= " <span class=\"disabled\">« previous </span> ";	
+			$pagination.= " <span class=\"disabled\">ï¿½ previous </span> ";	
 		
 		//pages	
 		if ($lastpage < 7 + ($adjacents * 2))	//not enough pages to bother breaking it up
@@ -446,9 +390,9 @@ $pagination = "";
 		
 		//next button
 		if ($page < $counter - 1) 
-			$pagination.= " <a href=\"$targetpage?page=$next\"> next »</a> ";
+			$pagination.= " <a href=\"$targetpage?page=$next\"> next ï¿½</a> ";
 		else
-			$pagination.= " <span class=\"disabled\"> next »</span> ";
+			$pagination.= " <span class=\"disabled\"> next ï¿½</span> ";
 		$pagination.= "</div>\n";		
 	}
 	 $srno=($page-1)*$limit+1;

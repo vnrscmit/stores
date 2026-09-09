@@ -23,7 +23,7 @@
 	$sdate=trim($_POST['sdate']);
 	$edate=trim($_POST['edate']);
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		
 	if(isset($_REQUEST['sdate']))

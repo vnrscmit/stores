@@ -24,7 +24,7 @@
 	//$logid="OP1";
 	//$lgnid="OP1";
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$p_id=trim($_POST['maintrid']);
 		$code=trim($_POST['code']);
@@ -329,6 +329,34 @@ function pformedtup()
 			var a=formPost(document.getElementById('mainform'));
 			//alert(a);
 			showUser(a,'postingtable','mformsubedt','','','','','');
+			// Capture arrival_id and subarrival_id for QR generation and edit operations
+			setTimeout(function() {
+				var responseHtml = document.getElementById('postingtable').innerHTML;
+				
+				// Extract ARRIVAL_ID
+				var arrival_id = 0;
+				var arrivalMatch = responseHtml.match(/ARRIVAL_ID:\s*(\d+)/i);
+				if(arrivalMatch && arrivalMatch[1]) {
+					arrival_id = arrivalMatch[1];
+				}
+				
+				// Extract ARRSUB_ID
+				var subarrival_id = 0;
+				var subarrivalMatch = responseHtml.match(/ARRSUB_ID:\s*(\d+)/i);
+				if(subarrivalMatch && subarrivalMatch[1]) {
+					subarrival_id = subarrivalMatch[1];
+				} else {
+					// Fallback: search for hidden div with more flexible pattern
+					var expandedMatch = responseHtml.match(/ARRSUB_ID[^<]*?(\d+)/i);
+					if(expandedMatch && expandedMatch[1]) {
+						subarrival_id = expandedMatch[1];
+					}
+				}
+				
+				// Set form fields
+				document.frmaddDepartment.maintrid.value = arrival_id;
+				document.frmaddDepartment.subtrid.value = subarrival_id;
+			}, 500);
 		}
 	}
 }
@@ -1091,6 +1119,61 @@ function rtnbychk(rtnbyval)
 	}
 }
 
+function openQRPage(arrival_id, arrsub_id, classification_id, item_id, ups_good)
+{
+	// Convert all parameters to integers and validate
+	arrival_id = parseInt(arrival_id) || 0;
+	arrsub_id = parseInt(arrsub_id) || 0;
+	classification_id = parseInt(classification_id) || 0;
+	item_id = parseInt(item_id) || 0;
+	ups_good = parseInt(ups_good) || 0;
+	
+	console.log('%c🔍 openQRPage called with:', 'color:blue;', {arrival_id, arrsub_id, classification_id, item_id, ups_good});
+	
+	// Validate required parameters
+	if(!arrival_id || arrival_id == 0) {
+		alert('❌ Error: Arrival ID is missing or 0.\n\nPlease save the arrival first.');
+		console.error('openQRPage: arrival_id is invalid', arrival_id);
+		return false;
+	}
+	
+	if(!arrsub_id || arrsub_id == 0) {
+		alert('❌ Error: Missing required parameters: arrsub_id\n\nPlease save the item completely before generating QR codes.');
+		console.error('openQRPage: arrsub_id is invalid', arrsub_id);
+		return false;
+	}
+	
+	if(!classification_id || classification_id == 0) {
+		alert('❌ Error: Classification ID is missing.');
+		console.error('openQRPage: classification_id is invalid', classification_id);
+		return false;
+	}
+	
+	if(!item_id || item_id == 0) {
+		alert('❌ Error: Item ID is missing.');
+		console.error('openQRPage: item_id is invalid', item_id);
+		return false;
+	}
+	
+	console.log('%c✅ All parameters validated successfully', 'color:green;font-weight:bold;');
+	
+	var qrUrl = 'generate_qr_codes.php?arrival_id=' + arrival_id + '&arrsub_id=' + arrsub_id + '&classification_id=' + classification_id + '&item_id=' + item_id + '&ups_good=' + ups_good;
+	
+	console.log('Opening QR window with URL:', qrUrl);
+	
+	var windowName = 'QR_' + arrival_id + '_' + arrsub_id + '_' + Date.now();
+	var winHandle = window.open(qrUrl, windowName, 'top=50,left=50,width=1000,height=700,scrollbars=yes,resizable=yes');
+	
+	if(!winHandle) {
+		alert('Failed to open QR window. Please check your popup blocker settings.');
+		console.error('openQRPage: Failed to open window');
+		return false;
+	}
+	
+	console.log('%c✓ QR window opened successfully', 'color:green;');
+	return true;
+}
+
 function mySubmit()
 {	
 	if(document.frmaddDepartment.date.value=="00-00-0000" || document.frmaddDepartment.date.value=="")
@@ -1134,66 +1217,10 @@ function mySubmit()
 
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav">
-             <li><a href="#">Transactions </a>
-              <ul>
-                <li><a href="arrival_home.php" >&nbsp;Arrival</a></li>
-                <li><a href="issue_home.php" >&nbsp;Issue</a></li>
-                <li><a href="c_c_home.php" >&nbsp;Captive&nbsp;Consumption</a></li>
-				<li><a href="add_discard.php" >&nbsp;Material&nbsp;Discard</a></li>
-				<li><a href="home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-                <li><a href="add_arrival.php" >&nbsp;SLOC&nbsp;Updation</a></li>
-				<li><a href="reorder.php" >&nbsp;Order&nbsp;Placement&nbsp;at&nbsp;Reorder</a></li>
-             </ul>
-            </li>
-             <li><a href="#"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li>
-					 <?php
-			  if($role == "admin")
-			  {
-			  ?>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-				<?php
-				}
-				?>
-              </ul>
-            </li><li>
-            <a href="#">Utility </a>
-             <ul>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_bincard.php','WelCome','top=10,left=50,width=950,height=800,scrollbars=yes')" >&nbsp;Sub-Bin&nbsp;Card</a></li>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li> <?php if($role == "admin")
-			  {
-			  ?>
-			  <li><a href=" Javascript:void(0)" onClick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-			  <?php }?>
-           </ul>   </li>
-            </ul>
-            </div>
-            </div>
-            <div class="toplinks" style="vertical-align:text-top"><ul style="vertical-align:text-top"> <li> <a href="operprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="help.php">Help </a>| </li>    <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>

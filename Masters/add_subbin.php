@@ -22,10 +22,10 @@ session_start();
 	require_once("../include/connection.php");
 	
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		
-					
+				
 			$wh=trim($_POST['txtwh']);
 			$bin=trim($_POST['txtbin']);
 			$sbin=trim($_POST['txtsbin']);

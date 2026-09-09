@@ -19,7 +19,7 @@
 	{
 	$classification_id = $_REQUEST['classification_id'];
 	}
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		/*$classification=trim($_POST['txtcla']);
 		//$cropshort=strtoupper(trim($_POST['txtcropshort']));

@@ -67,7 +67,9 @@ $business_name=$rt;
 	//$res=mysql_query($sql_sel) or die (mysql_error());
 
 	$sql = mysql_query("SELECT * FROM tbl_partymaser where classification='$business_name' order by business_name"); 
-	$total_results = mysql_result(mysql_query("SELECT COUNT(*) as Num FROM tbl_partymaser where classification='$business_name'"),0); 
+	$count_result = mysql_query("SELECT COUNT(*) as Num FROM tbl_partymaser where classification='$business_name'");
+	$count_row = mysql_fetch_array($count_result);
+	$total_results = $count_row[0]; 
 	//}
 	$total=mysql_num_rows($sql);
     if($total >0) { 

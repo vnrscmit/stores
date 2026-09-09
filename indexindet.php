@@ -79,7 +79,7 @@ $sql_yr=mysql_query("select * from tblyears where years_flg =1 and years_status=
 $s_sub="delete from tbl_ieindent where tflg=0 and id='$loginid'";
 	mysql_query($s_sub) or die(mysql_error());	
 	
-if(isset($_POST['frm_action'])=='submit')
+if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$sdate1=trim($_POST['sdate']);
 		$edate1=trim($_POST['edate']);
@@ -270,22 +270,8 @@ function formPost(top_element){
 <body>
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            
-            </div>
-            <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top">
-                <li><a href="Transaction/indentProfile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="Transaction/help.php">Help </a>| </li> <li> &nbsp;<a href="logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
+    <td valign="top">
+      <?php include 'include/navbar_eindent.php'; ?>
       <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="images/blue_curvetop.gif" /></td>
@@ -315,7 +301,9 @@ function formPost(top_element){
 	$res=mysql_query($sql_sel) or die (mysql_error());
 	
 	$total=mysql_num_rows($res);
-	$total_results = mysql_result(mysql_query("SELECT COUNT(*) as Num FROM tbl_ieindent where id='$loginid' and flg=0"),0); 
+	$count_result = mysql_query("SELECT COUNT(*) as Num FROM tbl_ieindent where id='$loginid' and flg=0");
+	$count_row = mysql_fetch_array($count_result);
+	$total_results = $count_row[0]; 
 	if($total <20)
 	{
 ?>
@@ -360,7 +348,9 @@ if(!isset($_GET['page'])) {
 $sql_arr_home=mysql_query("select * from tbl_ieindent where  flg=0 and id='".$loginid."' order by code desc LIMIT $from, $max_results") or die(mysql_error());
 $tot_arr_home=mysql_num_rows($sql_arr_home);
 
-$total_results = mysql_result(mysql_query("SELECT COUNT(*) as Num FROM tbl_ieindent where  flg=0 and id='".$loginid."'"),0); 
+$count_result = mysql_query("SELECT COUNT(*) as Num FROM tbl_ieindent where  flg=0 and id='".$loginid."'");
+$count_row = mysql_fetch_array($count_result);
+$total_results = $count_row[0]; 
 
     if($tot_arr_home >0) { 
 ?>

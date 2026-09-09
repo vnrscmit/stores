@@ -36,7 +36,7 @@
 		$class=trim($_POST['txtclass']);
 		$item=trim($_POST['txtitem']);
 	
-		if(isset($_POST['frm_action'])=='submit')
+		if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 		{
 		/*$a=0;
 		$dept=trim($_POST['department']);

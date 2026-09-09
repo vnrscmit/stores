@@ -20,7 +20,7 @@
 	require_once("include/config.php");
 	require_once("include/connection.php");
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 			$printopt=$_POST['fet1'];
 		
@@ -118,36 +118,9 @@ function mySubmit()
 <body>
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="images/logotrac.gif" border="0" /></a></div>
-           <!-- <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav"><ul>
-             /*  <li><a href="#"> Reports </a>
-              
-                <li><a href="reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				<li><a href="masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-              </ul>
-            </li>
-              </ul>*/
-            </div>
-            </div>-->
-            <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top">
-                <li> <a href="Transaction/viwerprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="Transaction/help.php">Help </a>| </li>
-                <li> &nbsp;<a href="logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
+    <td valign="top">
+      <?php include 'include/navbar_viewer.php'; ?>
+      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         </tr>
       </table>
       <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">

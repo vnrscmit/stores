@@ -28,7 +28,7 @@
 	{
 	$itmid = $_REQUEST['itmid'];
 	}
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 	}
 		$filename="Transaction-Vendor-".$itmid ['itmid'].".doc";    

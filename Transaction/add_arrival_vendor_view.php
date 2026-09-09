@@ -246,67 +246,10 @@ function mySubmit()
 
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav">
-             <li><a href="#">Transactions </a>
-              <ul>
-                <li><a href="arrival_home.php" >&nbsp;Arrival</a></li>
-                <li><a href="issue_home.php" >&nbsp;Issue</a></li>
-                <li><a href="c_c_home.php" >&nbsp;Captive&nbsp;Consumption</a></li>
-				<li><a href="add_discard.php" >&nbsp;Material&nbsp;Discard</a></li>
-				<li><a href="home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-                <li><a href="add_arrival.php" >&nbsp;SLOC&nbsp;Updation</a></li>
-				<li><a href="reorder.php" >&nbsp;Order&nbsp;Placement&nbsp;at&nbsp;Reorder</a></li>
-             </ul>
-            </li>
-             <li><a href="#"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li> 
-				<?php
-			  if($role == "admin")
-			  {
-			  ?>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-				<?php
-				}
-				?>
-              </ul>
-            </li><li>
-            <a href="#">Utility </a>
-             <ul>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_bincard.php','WelCome','top=10,left=50,width=950,height=800,scrollbars=yes')" >&nbsp;Sub-Bin&nbsp;Card</a></li>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li> <?php if($role == "admin")
-			  {
-			  ?>
-			  <li><a href=" Javascript:void(0)" onClick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-			  <?php }?>
-           </ul>   </li>
-            </ul>
-            </div>
-            </div>
-            <div class="toplinks" style="vertical-align:text-top">  <ul style="vertical-align:text-top"> <li> <a href="operprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="help.php">Help </a>| </li>
-                <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>
@@ -379,7 +322,7 @@ $lrole=$row_tbl['arr_role'];
 
 <td align="right"  valign="middle" class="tblheading">Vendor&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext" >&nbsp;<?php echo $row3['business_name'];?></td>
-	<td align="right"  valign="middle" class="tblheading">D.C./Inv. No &nbsp;</td>
+	<td align="right"  valign="middle" class="tblheading">D.C./Inv. Noï¿½&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext" colspan="3">&nbsp;<?php echo $row_tbl['dcno'];?></td>
 
            </tr>
@@ -471,6 +414,7 @@ Shortage</td>
 					<td width="9%" align="center" valign="middle" class="tblheading">Bin</td>
                     <td width="5%" align="center" valign="middle" class="tblheading">UPS</td>
                     <td width="5%" align="center" valign="middle" class="tblheading">Qty</td>
+                    <td width="7%" align="center" valign="middle" class="tblheading">QR Codes</td>
               </tr>
 <?php
 $srno=1;
@@ -542,14 +486,25 @@ $gd=$gd."D"."<br />";
 ?>			 <td align="center" valign="middle" class="tblheading"><?php echo $gd;?></td>
  		     <td width="9%" align="center" valign="middle" class="tblheading"><?php echo $slocs;?></td>
 			 <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sups;?></td>
- 		     <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sqty;?></td>
- </tr>
-<?php
-}
-else
-{
-?>
-<tr class="Dark" height="20">
+ 		     <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sqty;?></td>			 <td width="7%" align="center" valign="middle" class="tblheading">
+				<?php
+				// Get stlg_trid from tbl_stldg_good for vendor arrival
+				$sql_stldg = mysql_query("SELECT stlg_trid FROM tbl_stldg_good WHERE stlg_trtype='Vendor' AND stlg_trsubtype='arrival' AND stlg_tritemid='".$row_tbl_sub['item_id']."' AND stlg_trclassid='".$row_tbl_sub['classification_id']."' AND stlg_trid > 0 ORDER BY stlg_id DESC LIMIT 1") or die(mysql_error());
+				$stldg_row = mysql_fetch_array($sql_stldg);
+				$tr_id_good = isset($stldg_row['stlg_trid']) ? intval($stldg_row['stlg_trid']) : 0;
+				
+				// Check if QR codes are already linked for this specific arrival
+				$sql_linked = mysql_query("SELECT COUNT(*) as count FROM tbl_item_qrcodes WHERE item_id = '".$row_tbl_sub['item_id']."' AND arrival_id = '$arrival_id' AND tr_id > 0");
+				$linked_row = mysql_fetch_array($sql_linked);
+				$linked_count = intval($linked_row['count']);
+				
+				if($linked_count > 0) {
+					echo "<a href=\"Javascript:void(0)\" onclick=\"window.open('view_linked_qrcodes.php?tr_id=$tr_id_good&arrival_id=$arrival_id','QRCodes','top=50,left=100,width=1000,height=700,scrollbars=yes')\" style=\"color:#0066cc; text-decoration:underline; font-weight:bold;\">View QRs (" . $linked_count . ")</a>";
+				} else {
+					echo "<a href=\"Javascript:void(0)\" onclick=\"window.open('link_qrcodes.php?arrival_id=$arrival_id&arrsub_id=" . $row_tbl_sub['arrsub_id'] . "&tr_id=$tr_id_good','LinkQRs','top=50,left=100,width=1000,height=700,scrollbars=yes')\" style=\"color:#009900; text-decoration:underline; font-weight:bold;\">Link QRs</a>";
+				}
+				?>
+			 </td> </tr>
              <td width="2%" align="center" valign="middle" class="tblheading"><?php echo $srno;?></td>
 			 <td width="14%" align="center" valign="middle" class="tblheading"><?php echo $row_class['classification'];?></td>
              <td width="17%" align="center" valign="middle" class="tblheading"><?php echo $row_item['stores_item'];?></td>
@@ -603,8 +558,25 @@ $gd=$gd."D"."<br />";
 ?>			 <td align="center" valign="middle" class="tblheading"><?php echo $gd;?></td>
  		     <td width="9%" align="center" valign="middle" class="tblheading"><?php echo $slocs;?></td>
 			 <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sups;?></td>
- 		     <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sqty;?></td>
- </tr> 
+ 		     <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sqty;?></td>			 <td width="7%" align="center" valign="middle" class="tblheading">
+				<?php
+				// Get stlg_trid from tbl_stldg_good for vendor arrival
+				$sql_stldg = mysql_query("SELECT stlg_trid FROM tbl_stldg_good WHERE stlg_trtype='Vendor' AND stlg_trsubtype='arrival' AND stlg_tritemid='".$row_tbl_sub['item_id']."' AND stlg_trclassid='".$row_tbl_sub['classification_id']."' AND stlg_trid > 0 ORDER BY stlg_id DESC LIMIT 1") or die(mysql_error());
+				$stldg_row = mysql_fetch_array($sql_stldg);
+				$tr_id_good = isset($stldg_row['stlg_trid']) ? intval($stldg_row['stlg_trid']) : 0;
+				
+				// Check if QR codes are already linked for this specific arrival
+				$sql_linked = mysql_query("SELECT COUNT(*) as count FROM tbl_item_qrcodes WHERE item_id = '".$row_tbl_sub['item_id']."' AND arrival_id = '$arrival_id' AND tr_id > 0");
+				$linked_row = mysql_fetch_array($sql_linked);
+				$linked_count = intval($linked_row['count']);
+				
+				if($linked_count > 0) {
+					echo "<a href=\"Javascript:void(0)\" onclick=\"window.open('view_linked_qrcodes.php?tr_id=$tr_id_good&arrival_id=$arrival_id','QRCodes','top=50,left=100,width=1000,height=700,scrollbars=yes')\" style=\"color:#0066cc; text-decoration:underline; font-weight:bold;\">View QRs (" . $linked_count . ")</a>";
+				} else {
+					echo "<a href=\"Javascript:void(0)\" onclick=\"window.open('link_qrcodes.php?arrival_id=$arrival_id&arrsub_id=" . $row_tbl_sub['arrsub_id'] . "&tr_id=$tr_id_good','LinkQRs','top=50,left=100,width=1000,height=700,scrollbars=yes')\" style=\"color:#009900; text-decoration:underline; font-weight:bold;\">Link QRs</a>";
+				}
+				?>
+			 </td> </tr>
 <?php
 }
 $srno++;

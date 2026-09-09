@@ -200,7 +200,9 @@ mm_menu_0226134618_0.writeMenus();
 	$res=mysql_query($sql_sel) or die (mysql_error());
 	
 	$total=mysql_num_rows($res);
-	$total_results = mysql_result(mysql_query("SELECT COUNT(*) as Num FROM tbllocation"),0); 
+	$count_result = mysql_query("SELECT COUNT(*) as Num FROM tbllocation");
+	$count_row = mysql_fetch_array($count_result);
+	$total_results = $count_row[0]; 
 
 	if($total >0) { 
 ?>

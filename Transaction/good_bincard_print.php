@@ -143,59 +143,13 @@ return true;
 
 
 <body>
+
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav">
-             <li><a href="#">Transactions </a>
-              <ul>
-                <li><a href="arrival_home.php" >&nbsp;Arrival</a></li>
-                <li><a href="issue_home.php" >&nbsp;Issue</a></li>
-                <li><a href="c_c_home.php" >&nbsp;Captive&nbsp;Consumption</a></li>
-				<li><a href="add_discard.php" >&nbsp;Material&nbsp;Discard</a></li>
-				<li><a href="home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-                <li><a href="add_arrival.php" >&nbsp;SLOC&nbsp;Updation</a></li>
-				<li><a href="reorder.php" >&nbsp;Order&nbsp;Placement&nbsp;at&nbsp;Reorder</a></li>
-             </ul>
-            </li>
-             <li><a href="#"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				<li><a href="../masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-              </ul>
-            </li>
-            <li>
-            <a href="#">Utility </a>
-             <ul>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_bincard.php','WelCome','top=10,left=50,width=950,height=800,scrollbars=yes')" >&nbsp;Sub-Bin&nbsp;Card</a></li>
-              <li><a href="../utility/utility_wh.php" >&nbsp;SLOC&nbsp;Search</a></li>
-			  <li><a href="../utility/utility_sloc.php" >&nbsp;Bincard&nbsp;Printing</a></li>
-			  <li><a href="../utility/utility.php" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>
-            </ul>  </li>
-            </ul>
-            </div>
-            </div>
-            <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top"><li><a href="adminprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="help.php">Help </a>| </li>
-                <li> &nbsp;<a href="logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="500" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="500" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>

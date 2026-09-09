@@ -19,7 +19,7 @@
 	{
 	mysql_select_db("stores",$con);
 	}
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 	$a=trim($_POST['txtcla']);
 	//}
@@ -36,7 +36,7 @@ if (!$con)
 
 mysql_select_db("stores", $con);
 
- 	if(isset($_POST['frm_action'])=='submit')
+ 	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		$classification=trim($_POST['txtcla']);
 		   $sql_in="insert into tbl_classification(classification) values(

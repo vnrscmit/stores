@@ -93,7 +93,7 @@
 	 $flg1 = $_GET['flg1'];	 
 	}
 	*/
-		if(isset($_POST['frm_action'])=='submit')
+		if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 		{ /*
 		$dept=trim($_POST['department']);
 		$monthf=trim($_POST['monthf']);
@@ -139,7 +139,7 @@ $quer3=mysql_query("SELECT p_id, business_name FROM tbl_partymaser  where p_id=$
 	 $flg1 = $_GET['flg1'];	 
 	}
 	*/
-		if(isset($_POST['frm_action'])=='submit')
+		if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 		{ /*
 		$dept=trim($_POST['department']);
 		$monthf=trim($_POST['monthf']);

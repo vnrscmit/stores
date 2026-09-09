@@ -74,15 +74,72 @@
 	{
 	$txtpname = $_REQUEST['txtpname'];
 	}
+	
+	// Capture item data from URL parameters
+	if(isset($_REQUEST['txtitem']))
+	{
+	$txtitem = $_REQUEST['txtitem'];
+	}
+	if(isset($_REQUEST['txtupsdc']))
+	{
+	$txtupsdc = $_REQUEST['txtupsdc'];
+	}
+	if(isset($_REQUEST['txtqtydc']))
+	{
+	$txtqtydc = $_REQUEST['txtqtydc'];
+	}
+	if(isset($_REQUEST['txtupsg']))
+	{
+	$txtupsg = $_REQUEST['txtupsg'];
+	}
+	if(isset($_REQUEST['txtqtyg']))
+	{
+	$txtqtyg = $_REQUEST['txtqtyg'];
+	}
+	if(isset($_REQUEST['txtupsd']))
+	{
+	$txtupsd = $_REQUEST['txtupsd'];
+	}
+	if(isset($_REQUEST['txtqtyd']))
+	{
+	$txtqtyd = $_REQUEST['txtqtyd'];
+	}
+	if(isset($_REQUEST['txtuom']))
+	{
+	$txtuom = $_REQUEST['txtuom'];
+	}
+	if(isset($_REQUEST['txtslqtyg1']))
+	{
+	$txtslqtyg1 = $_REQUEST['txtslqtyg1'];
+	}
+	if(isset($_REQUEST['txtslsubbg1']))
+	{
+	$txtslsubbg1 = $_REQUEST['txtslsubbg1'];
+	}
+	if(isset($_REQUEST['txtclass']))
+	{
+	$txtclass = $_REQUEST['txtclass'];  // Classification ID
+	}
+else
+	{
+	$txtclass = '';
+	}
 
-$sql_main="update tblarrival set yearcode='$yearid_id',dcno='$txtdcno', party_id='$txtcla', porefno='$txtporn', tmode='$txt11', trans_name='$txttname', trans_lorryrepno='$txtlrn', trans_vehno='$txtvn', trans_paymode='$txt14', courier_name='$txtcname', docket_no='$txtdc', pname_byhand='$txtpname', remarks='$remarks' where arrival_id = '$pid'";
-
-$a123456=mysql_query($sql_main) or die(mysql_error());
+// Only update on finalsubmit, not on initial page load
+// This will be done inside the if($_POST['frm_action']=='submit') block below
 
 
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
+	// Use existing arrival_id from p_id (already created via AJAX on first item add)
+	// No need to create new arrival - just UPDATE the existing one
+	error_log("DEBUG: Processing finalsubmit for existing arrival_id=$pid");
+	
+	// UPDATE arrival record with vendor/transport details from form
+	$sql_update_arrival = "UPDATE tblarrival SET yearcode='$yearid_id', dcno='$txtdcno', party_id='$txtcla', porefno='$txtporn', tmode='$txt11', trans_name='$txttname', trans_lorryrepno='$txtlrn', trans_vehno='$txtvn', trans_paymode='$txt14', courier_name='$txtcname', docket_no='$txtdc', pname_byhand='$txtpname', remarks='$remarks' WHERE arrival_id = '$pid'";
+	mysql_query($sql_update_arrival) or die(mysql_error());
+	error_log("DEBUG: Updated arrival with details - dcno='$txtdcno', party_id='$txtcla'");
 	
 	$sql_arr=mysql_query("select * from tblarrival where arrival_id='".$pid."'") or die(mysql_error());
 	while($row_arr=mysql_fetch_array($sql_arr))
@@ -93,12 +150,42 @@ $a123456=mysql_query($sql_main) or die(mysql_error());
 		
 		
 	$sql_arrsub=mysql_query("select * from tblarrival_sub where arrival_id='".$pid."'") or die(mysql_error());
+	$item_count = 0;
 	while($row_arrsub=mysql_fetch_array($sql_arrsub))
 	{
 		$classid=$row_arrsub['classification_id'];
 		$itemid=$row_arrsub['item_id'];
 		
+		// Try to get SLOC data - if none exists, still show item but with different styling
 		$sql_arrsub_sub=mysql_query("select * from tblarr_sloc where arr_tr_id='".$pid."' and arr_id='".$row_arrsub['arrsub_id']."'") or die(mysql_error());
+		$sloc_count = mysql_num_rows($sql_arrsub_sub);
+		
+		// If no SLOC data, still create a display row
+		if($sloc_count == 0)
+		{
+			$item_count++;
+			// Get item and classification info
+			$sql_item = mysql_query("select stores_item from tbl_stores where items_id='$itemid'") or die(mysql_error());
+			$row_item = mysql_fetch_array($sql_item);
+			$item_name = $row_item['stores_item'];
+			
+			$sql_class = mysql_query("select classification from tbl_classification where classification_id='$classid'") or die(mysql_error());
+			$row_class = mysql_fetch_array($sql_class);
+			$class_name = $row_class['classification'];
+			?>
+			<tr class="Light">
+				<td align="center" valign="middle"><?php echo $item_count; ?></td>
+				<td align="center" valign="middle"><?php echo $class_name; ?></td>
+				<td align="center" valign="middle"><?php echo $item_name; ?></td>
+				<td align="center" valign="middle"><?php echo $row_arrsub['ups_good']; ?></td>
+				<td align="center" valign="middle"><?php echo $row_arrsub['qty_good']; ?></td>
+				<td align="center" valign="middle">G</td>
+				<td align="center" valign="middle">N/A (SLOC pending)</td>
+			</tr>
+			<?php
+		}
+		else
+		{
 		while($row_arrsub_sub=mysql_fetch_array($sql_arrsub_sub))
 		{
 			$whid=$row_arrsub_sub['whid'];
@@ -235,7 +322,8 @@ $cntg=0;
 			mysql_query($sql_sub_sub) or die(mysql_error());
 			}
 		}	
-	}
+	} // Close else block
+	} // Close while($row_arrsub...) loop
 }
 	$sql_code="SELECT MAX(arr_code) FROM tblarrival where yearcode='$yearid_id'and  arrival_type='Vendor' ORDER BY arr_code DESC";
 	$res_code=mysql_query($sql_code)or die(mysql_error());
@@ -419,6 +507,38 @@ document.frmaddDepartment.txtitem.focus();
 }
 }
 
+function openQRPage(arrival_id, arrsub_id, classification_id, item_id, ups_good)
+{
+    // Validate all required parameters
+    if(!arrival_id || !arrsub_id || !classification_id || !item_id || !ups_good) {
+        alert('Error: Missing required parameters. Cannot open QR generation popup.\n\nPlease ensure all arrival details are properly saved.');
+        console.error('openQRPage missing params:', {arrival_id, arrsub_id, classification_id, item_id, ups_good});
+        return;
+    }
+    
+    // Ensure numeric values
+    arrival_id = parseInt(arrival_id);
+    arrsub_id = parseInt(arrsub_id);
+    classification_id = parseInt(classification_id);
+    item_id = parseInt(item_id);
+    ups_good = parseInt(ups_good);
+    
+    if(isNaN(arrival_id) || isNaN(arrsub_id) || isNaN(classification_id) || isNaN(item_id) || isNaN(ups_good)) {
+        alert('Error: Invalid parameter values. Please refresh the page and try again.');
+        console.error('openQRPage invalid params (not numeric):', {arrival_id, arrsub_id, classification_id, item_id, ups_good});
+        return;
+    }
+    
+    // Log parameters for debugging
+    console.log('Opening QR popup with params:', {arrival_id, arrsub_id, classification_id, item_id, ups_good});
+    
+    var url = 'generate_qr_codes.php?arrival_id=' + arrival_id + '&arrsub_id=' + arrsub_id + '&classification_id=' + classification_id + '&item_id=' + item_id + '&ups_good=' + ups_good;
+    
+    // Use unique window name to avoid conflicts
+    var windowName = 'QR_Generator_' + arrival_id + '_' + arrsub_id + '_' + new Date().getTime();
+    window.open(url, windowName, 'top=50,left=50,width=1000,height=700,scrollbars=yes,resizable=yes');
+}
+
 
 
 function mySubmit()
@@ -442,70 +562,13 @@ function mySubmit()
 </script>
 
 <body>
+
 <table width="1003" height="600" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
   <tr>
-    <td valign="top"><table width="1003" height="72" border="0" cellspacing="0" cellpadding="0" align="center">
-        <tr>
-          <td valign="top"><div class="headerwrapper">
-            <div class="logo"><a href="#"><img src="../images/logotrac.gif" border="0" /></a></div>
-            <div class="menuswrapper">
-            <div  id="navigation">
-            <ul  id="nav">
-             <li><a href="#">Transactions </a>
-              <ul>
-                <li><a href="arrival_home.php" >&nbsp;Arrival</a></li>
-                <li><a href="issue_home.php" >&nbsp;Issue</a></li>
-                <li><a href="c_c_home.php" >&nbsp;Captive&nbsp;Consumption</a></li>
-				<li><a href="add_discard.php" >&nbsp;Material&nbsp;Discard</a></li>
-				<li><a href="home_ci1.php" >&nbsp;Cycle&nbsp;Inventory</a></li>
-                <li><a href="add_arrival.php" >&nbsp;SLOC&nbsp;Updation</a></li>
-				<li><a href="reorder.php" >&nbsp;Order&nbsp;Placement&nbsp;at&nbsp;Reorder</a></li>
-             </ul>
-            </li>
-             <li><a href="#"> Reports </a>
-              <ul>
-                <li><a href="../reports/stockonhandreport.php" >&nbsp;Stock&nbsp;on&nbsp;Hand&nbsp;Report</a></li>
-                <li><a href="../reports/partywiseperiodreport.php" >&nbsp;Party&nbsp;wise&nbsp;Stock&nbsp;Report</a></li>
-                <li><a href="../reports/storesitamledger.php" >&nbsp;Stores&nbsp;Item&nbsp;Ledger&nbsp;Report</a></li>
-				<li><a href="../reports/stocktransferreport.php" >&nbsp;Stock&nbsp;Transfer&nbsp;Report</a></li>
-				<li><a href="../reports/captiveconsumptionreport.php" >&nbsp;Captive&nbsp;Consumption&nbsp;Report</a></li>
-                <li><a href="../reports/discardreport.php" >&nbsp;Discard&nbsp;Report</a></li>
-                <li><a href="../reports/reorderlevelreport.php" >&nbsp;Reorder&nbsp;Level&nbsp;Report</a></li>
-				 <li><a href="../reports/slocreport.php" >&nbsp;SLOC&nbsp;Status&nbsp;Report</a></li> 
-				<?php
-			  if($role == "admin")
-			  {
-			  ?>
-				<li><a href="../reports/masterreports.php" >&nbsp;Masters&nbsp;Report</a></li>
-				<?php
-				}
-				?>
-              </ul>
-            </li><li>
-            <a href="#">Utility </a>
-             <ul>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_bincard.php','WelCome','top=10,left=50,width=950,height=800,scrollbars=yes')" >&nbsp;Sub-Bin&nbsp;Card</a></li>
-			 <li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility_wh.php','WelCome','top=10,left=50,width=850,height=400,scrollbars=NO')" >&nbsp;SLOC&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/utility.php','WelCome','top=10,left=40,width=850,height=300,scrollbars=Yes')" >&nbsp;Stores&nbsp;Item&nbsp;Search</a></li>
-			<li><a href=" Javascript:void(0)" onClick="window.open('../utility/abbravation.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Abbreviations</a></li> <?php if($role == "admin")
-			  {
-			  ?>
-			  <li><a href=" Javascript:void(0)" onClick="window.open('../utility/backup.php','WelCome','top=10,left=50,width=650,height=900,scrollbars=yes')" >&nbsp;Backup</a></li>
-			  <?php }?>
-           </ul>   </li>
-            </ul>
-            </div>
-            </div>
-            <div class="toplinks" style="vertical-align:text-top">
-              <ul style="vertical-align:text-top"> 
-			  <li> <a href="operprofile.php">Profile </a> | </li>
-                <li>&nbsp; <a href="help.php">Help </a>| </li>  <li> &nbsp;<a href="../logout.php">Logout </a> </li>
-              </ul>
-            </div>
-            </div></td>
-        </tr>
-      </table>
-      <table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
+    <td valign="top">
+      <?php include '../include/navbar_loader.php'; ?>
+
+<table width="100%" style=" z-index:-1;" height="auto" align="center" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td width="100%" valign="top" align="center"><img src="../images/blue_curvetop.gif" /></td>
         </tr>
@@ -548,10 +611,21 @@ $arrival_id=$row_tbl['arrival_id'];
 	  
 <form name="frmaddDepartment" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>"   > 
 	 <input name="frm_action" value="submit" type="hidden"> 
-	 	<input type="hidden" name="logid" value="<?php echo $logid?>" />
-		<input type="hidden" name="txtitem" value="<?php echo $pid?>" />
-		<input type="hidden" name="remarks" value="<?php echo $remarks?>" />
-		<input type="hidden" name="date" value="<?php echo $tdate?>" />
+	 <input name="p_id" value="<?php echo $pid?>" type="hidden">
+	 <input type="hidden" name="logid" value="<?php echo $logid?>" />
+	 <input type="hidden" name="txtcla" value="<?php echo isset($txtcla) ? $txtcla : ''?>" />
+	 <input type="hidden" name="txtdcno" value="<?php echo isset($txtdcno) ? $txtdcno : ''?>" />
+	 <input type="hidden" name="txtporn" value="<?php echo isset($txtporn) ? $txtporn : ''?>" />
+	 <input type="hidden" name="txt11" value="<?php echo isset($txt11) ? $txt11 : ''?>" />
+	 <input type="hidden" name="txttname" value="<?php echo isset($txttname) ? $txttname : ''?>" />
+	 <input type="hidden" name="txtlrn" value="<?php echo isset($txtlrn) ? $txtlrn : ''?>" />
+	 <input type="hidden" name="txtvn" value="<?php echo isset($txtvn) ? $txtvn : ''?>" />
+	 <input type="hidden" name="txt14" value="<?php echo isset($txt14) ? $txt14 : ''?>" />
+	 <input type="hidden" name="txtcname" value="<?php echo isset($txtcname) ? $txtcname : ''?>" />
+	 <input type="hidden" name="txtdc" value="<?php echo isset($txtdc) ? $txtdc : ''?>" />
+	 <input type="hidden" name="txtpname" value="<?php echo isset($txtpname) ? $txtpname : ''?>" />
+	 <input type="hidden" name="remarks" value="<?php echo $remarks?>" />
+	 <input type="hidden" name="date" value="<?php echo $tdate?>" />
 		</br>
 
 
@@ -581,7 +655,7 @@ $arrival_id=$row_tbl['arrival_id'];
 
 <td align="right"  valign="middle" class="tblheading">Vendor&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext" >&nbsp;<?php echo $row3['business_name'];?></td>
-	<td align="right"  valign="middle" class="tblheading">D.C./Inv. No &nbsp;</td>
+	<td align="right"  valign="middle" class="tblheading">D.C./Inv. Noï¿½&nbsp;</td>
 <td align="left"  valign="middle" class="tbltext" colspan="3">&nbsp;<?php echo $row_tbl['dcno'];?></td>
 
            </tr>
@@ -806,7 +880,7 @@ $gd=$gd."D"."<br />";
  		     <td width="9%" align="center" valign="middle" class="tblheading"><?php echo $slocs;?></td>
 			 <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sups;?></td>
  		     <td width="5%" align="center" valign="middle" class="tblheading"><?php echo $sqty;?></td>
- </tr> 
+ </tr>
 <?php
 }
 $srno++;

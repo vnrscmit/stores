@@ -301,6 +301,9 @@ session_start();
 		$tyear=substr($tdate,6,4);
 		$tdate=$tyear."-".$tmonth."-".$tday;
 		
+$subid = 0;  // Initialize subarrival ID
+$mainid = 0; // Initialize main arrival ID
+
 if($z1 == 0)
 {
 $sql_main="insert into tblarrival (yearcode, arrival_type, arrival_code, arrival_date, party_id, stageret, retid, remarks, arr_role) values('$yearid_id','Internalreturn','$code','$tdate','$partyid','$txtstage','$txtrd','$y1','$logid')";
@@ -313,6 +316,15 @@ $sql_sub="insert into tblarrival_sub (arrival_id, classification_id, item_id, qt
 if(mysql_query($sql_sub) or die(mysql_error()))
 {
 $subid=mysql_insert_id();
+// Fallback: if mysql_insert_id() returns 0, query the database
+if($subid == 0 || $subid == "") {
+    $sql_get_sub = "SELECT MAX(arrsub_id) FROM tblarrival_sub WHERE arrival_id='$mainid'";
+    $res_get_sub = mysql_query($sql_get_sub) or die(mysql_error());
+    $row_get_sub = mysql_fetch_array($res_get_sub);
+    $subid = $row_get_sub[0];
+}
+// ✅ Update $subtid so hidden form field gets the correct value
+$subtid = $subid;
 if($god1==1)
 {
 $sql_sub_sub="insert into tblarr_sloc (arr_type, arr_tr_id, arr_id, classification_id, item_id, whid, binid, subbin, qty_good, ups_good, qty_damage, ups_damage, rowid) values('Internalreturn', '$mainid', '$subid', '$n', '$o', '$y', '$z', '$a1', '$b1', '$c1', '0', '0', '$rowid1')";
@@ -361,6 +373,15 @@ $sql_sub="insert into tblarrival_sub (arrival_id, classification_id, item_id, qt
 if(mysql_query($sql_sub) or die(mysql_error()))
 {
 $subid=mysql_insert_id();
+// Fallback: if mysql_insert_id() returns 0, query the database
+if($subid == 0 || $subid == "") {
+    $sql_get_sub = "SELECT MAX(arrsub_id) FROM tblarrival_sub WHERE arrival_id='$mainid'";
+    $res_get_sub = mysql_query($sql_get_sub) or die(mysql_error());
+    $row_get_sub = mysql_fetch_array($res_get_sub);
+    $subid = $row_get_sub[0];
+}
+// ✅ Update $subtid so hidden form field gets the correct value
+$subtid = $subid;
 if($god1==1)
 {
 $sql_sub_sub="insert into tblarr_sloc (arr_type, arr_tr_id, arr_id, classification_id, item_id, whid, binid, subbin, qty_good, ups_good, qty_damage, ups_damage, rowid) values('Internalreturn', '$mainid', '$subid', '$n', '$o', '$y', '$z', '$a1', '$b1', '$c1', '0', '0', '$rowid1')";
@@ -507,6 +528,7 @@ $gd=$gd."D"."<br />";
 			 
 			 <td width="3%" align="center" valign="middle" class="tblheading"><img src="../images/edit.png" border="0" style="display:inline;cursor:pointer;" onclick="editrec(<?php echo $row_tbl_sub['arrsub_id'];?>);" /></td>
  		     <td width="5%" align="center" valign="middle" class="tblheading"><img border="0" src="../images/delete.png"  style="display:inline;cursor:pointer;" onclick="deleterec(<?php echo $tid?>,<?php echo $row_tbl_sub['arrsub_id'];?>,'Vendor');" /></td>
+              <td width="5%" align="center" valign="middle" class="tblheading"><img border="0" src="../images/qrcode.png" alt="QR" title="Generate QR Codes" style="display:inline;cursor:pointer;" onclick="openQRPage('<?php echo isset($arrival_id) && $arrival_id ? $arrival_id : $tid;?>','<?php echo isset($row_tbl_sub['arrsub_id']) && $row_tbl_sub['arrsub_id'] ? $row_tbl_sub['arrsub_id'] : 0;?>','<?php echo isset($row_tbl_sub['classification_id']) ? $row_tbl_sub['classification_id'] : 0;?>','<?php echo isset($row_tbl_sub['item_id']) ? $row_tbl_sub['item_id'] : 0;?>','<?php echo isset($row_tbl_sub['ups_good']) ? $row_tbl_sub['ups_good'] : 0;?>');" /></td>
  </tr>
 <?php
 }
@@ -567,7 +589,8 @@ $gd=$gd."D"."<br />";
 			 
 			 <td width="3%" align="center" valign="middle" class="tblheading"><img src="../images/edit.png" border="0" style="display:inline;cursor:pointer;" onclick="editrec(<?php echo $row_tbl_sub['arrsub_id'];?>);" /></td>
  		     <td width="5%" align="center" valign="middle" class="tblheading"><img border="0" src="../images/delete.png"  style="display:inline;cursor:pointer;" onclick="deleterec(<?php echo $tid?>,<?php echo $row_tbl_sub['arrsub_id'];?>,'Vendor');" /></td>
- </tr> 
+              <td width="5%" align="center" valign="middle" class="tblheading"><img border="0" src="../images/qrcode.png" alt="QR" title="Generate QR Codes" style="display:inline;cursor:pointer;" onclick="openQRPage('<?php echo isset($arrival_id) && $arrival_id ? $arrival_id : $tid;?>','<?php echo isset($row_tbl_sub['arrsub_id']) && $row_tbl_sub['arrsub_id'] ? $row_tbl_sub['arrsub_id'] : 0;?>','<?php echo isset($row_tbl_sub['classification_id']) ? $row_tbl_sub['classification_id'] : 0;?>','<?php echo isset($row_tbl_sub['item_id']) ? $row_tbl_sub['item_id'] : 0;?>','<?php echo isset($row_tbl_sub['ups_good']) ? $row_tbl_sub['ups_good'] : 0;?>');" /></td>
+ </tr>
 <?php
 }
 $srno++;
@@ -666,4 +689,11 @@ $itemqry=mysql_query("select items_id, stores_item from tbl_stores order by stor
 <tr >
 <td valign="top" align="right"><img src="../images/post.gif" border="0"style="display:inline;cursor:hand;" onclick="pform();" />&nbsp;&nbsp;</td>
 </tr>
-</table></div>
+</table>
+
+<!-- ✅ Output ARRIVAL_ID and ARRSUB_ID for QR linking - INSIDE postingsubtable -->
+<div style="display:none;">
+ARRIVAL_ID: <?php echo $mainid > 0 ? $mainid : $tid; ?><br/>
+ARRSUB_ID: <?php echo $subid; ?>
+</div>
+</div>

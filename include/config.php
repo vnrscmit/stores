@@ -6,8 +6,8 @@
 	
 	$db_host="localhost";
 	$db_user="root";
-	$db_pass="ispl123";
-	$db_name="stores";
+	$db_pass="";
+	$db_name="storesd";
 	
 	/*$db_host="localhost";
 	$db_user="root";

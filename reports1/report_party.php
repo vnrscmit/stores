@@ -26,7 +26,7 @@
 	$business_name = $_REQUEST['business_name'];
 	}
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 	
 if($business_name=="Stock Transfer")

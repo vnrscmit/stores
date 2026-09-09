@@ -33,7 +33,7 @@
 	}
 		$cid = $_REQUEST['txtclass'];
 	$itemid = $_REQUEST['txtitem'];
-		if(isset($_POST['frm_action'])=='submit')
+		if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 		{
 		 /*$dept=trim($_POST['department']);
 		$monthf=trim($_POST['monthf']);

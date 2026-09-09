@@ -22,7 +22,7 @@
 	require_once("../include/connection.php");
 	
 	
-	if(isset($_POST['frm_action'])=='submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='submit')
 	{
 		//$name=trim($_POST['txtname']);
 		
@@ -35,6 +35,7 @@
 		$cphno=trim($_POST['cphno']);
 		$cphno1=trim($_POST['cphno1']);
 		$plant=trim($_POST['txtplant']);
+		$plantcode=trim($_POST['txtplantcode']);
 		$pcity=trim($_POST['pcity']);
 		$ppin=trim($_POST['ppin']);
 		$pstate=trim($_POST['pstate']);
@@ -45,13 +46,14 @@
 		$licenceno=trim($_POST['txtlcn']);
 		$tin=trim($_POST['txttin']);
 		$cst=trim($_POST['txtcstno']);
+		$plantcode=isset($_POST['txtplantcode']) ? trim($_POST['txtplantcode']) : '';
 			$parentimage1=trim($_FILES['brouse']['name']);
 		 if($parentimage1<>"")
 		{
 		$imagepath1="../help/".$parentimage1;
 		copy($_FILES['brouse']['tmp_name'],$imagepath1);
 		}
-		 $sql_in="insert into tbl_parameters(company_name, logo, address, ccity, cphone, cphone1, cstate, cstd, cpin, plant, pcity, pphone, pphone1, pstate, pstd, ppin, licence_no, tin, cst_no) values('$cname', '$imagepath1', '$address', '$ccity', '$cphone', '$cphone1', '$cstate', '$cstd', '$cpin', '$plant', '$pcity', '$pphone', '$pphone1', '$pstate', '$pstd', '$ppin', '$licenceno', '$tin', '$cst')";
+		 $sql_in="insert into tbl_parameters(company_name, logo, address, ccity, cphone, cphone1, cstate, cstd, cpin, plant, plantcode, pcity, pphone, pphone1, pstate, pstd, ppin, licence_no, tin, cst_no) values('$cname', '$imagepath1', '$address', '$ccity', '$cphone', '$cphone1', '$cstate', '$cstd', '$cpin', '$plant', '$plantcode', '$pcity', '$pphone', '$pphone1', '$pstate', '$pstd', '$ppin', '$licenceno', '$tin', '$cst')";
 			//exit;							
 		if(mysql_query($sql_in)or die(mysql_error()))
 		{		
@@ -698,6 +700,9 @@ $quer2=mysql_query("SELECT * FROM tbl_parameters ");
 <tr class="Dark" height="25">
 <td width="206"  align="right"  valign="middle" class="tblheading">Plant Address&nbsp;</td>
 <td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<textarea name="txtplant" cols="20" rows="5" tabindex="" onChange="f7(this.value);"  class="tbltext"></textarea> &nbsp;<font color="#FF0000">*</font></td></tr>
+<tr class="Light" height="25">
+<td width="206"  align="right"  valign="middle" class="tblheading">Plant Code&nbsp;</td>
+<td align="left"  valign="middle" colspan="3" class="tbltext">&nbsp;<input name="txtplantcode" type="text" size="20" class="tbltext" tabindex="0" maxlength="20"/>&nbsp;</td></tr>
 <tr class="Light" height="30" >
     <td width="304"  align="right" valign="middle" class="tblheading">&nbsp;City/Town/Village&nbsp;</td>
     <td align="left"  valign="middle" class="tbltext" colspan="4">&nbsp;<input name="pcity" type="text" size="25" class="tbltext" tabindex="" maxlength="25"  onChange="f8(this.value);"/>

@@ -28,7 +28,7 @@
 	$char = "ALL";
 	}*/
 	
-	if(isset($_POST['frm_action'])=='Submit')
+	if(isset($_POST['frm_action']) && $_POST['frm_action']=='Submit')
 	{
 		
 		 $whid=trim($_POST['txtslwhg1']);
