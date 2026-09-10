@@ -27,4 +27,14 @@ class EIndentItem extends Model
     {
         return $this->belongsTo(EIndent::class, 'id_in', 'tid');
     }
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(Item::class, 'items_id', 'items_id');
+    }
+
+    public function classification(): BelongsTo
+    {
+        return $this->belongsTo(Classification::class, 'classification_id', 'classification_id');
+    }
 }

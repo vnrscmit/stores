@@ -86,6 +86,18 @@ class DocumentNumber
             ->value('current_value');
     }
 
+    /**
+     * Ensure a counter exists at least at $value (bootstraps from the legacy
+     * table MAX when the pipeline has not seeded this type/year yet).
+     */
+    public static function prime(string $docType, string $yearcode, int $value): void
+    {
+        DB::table('document_counters')->updateOrInsert(
+            ['doc_type' => $docType, 'yearcode' => $yearcode],
+            ['current_value' => $value, 'created_at' => now(), 'updated_at' => now()]
+        );
+    }
+
     /** Legacy pretty reference, e.g. TIE12/20222023. */
     public static function pretty(string $docType, int|string $code, string $yearcode): string
     {

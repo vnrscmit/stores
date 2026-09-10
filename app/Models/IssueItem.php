@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Legacy source: tblissue_sub (storesd).
@@ -26,5 +27,15 @@ class IssueItem extends Model
     public function issue(): BelongsTo
     {
         return $this->belongsTo(Issue::class, 'issue_id', 'issue_id');
+    }
+
+    public function slocs(): HasMany
+    {
+        return $this->hasMany(IssueSloc::class, 'issue_id', 'issuesub_id');
+    }
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(Item::class, 'item_id', 'items_id');
     }
 }

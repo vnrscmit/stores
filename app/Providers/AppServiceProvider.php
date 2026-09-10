@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Models\Bin;
 use App\Models\Classification;
+use App\Models\EIndent;
+use App\Models\EIndentItem;
+use App\Models\Issue;
+use App\Models\IssueItem;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\SubBin;
@@ -48,6 +52,10 @@ class AppServiceProvider extends ServiceProvider
             'classifications' => Classification::class,
             'items' => Item::class,
             'parties' => Party::class,
+            'e_indents' => EIndent::class,
+            'e_indent_items' => EIndentItem::class,
+            'issues' => Issue::class,
+            'issue_items' => IssueItem::class,
         ]);
     }
 }

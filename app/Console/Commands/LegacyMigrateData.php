@@ -308,6 +308,7 @@ class LegacyMigrateData extends Command
 
         $sources = [
             ['eindent', 'e_indents', 'yearcode', 'code', null],
+            ['eindent.draft', 'e_indents', 'yearcode', 'code1', null],
             ['issue.eindent', 'issues', 'yearcode', 'iss_code', "issue_type = 'eindent'"],
             ['issue.pindent', 'issues', 'yearcode', 'iss_code', "issue_type = 'pindent'"],
             ['issue.stocktr', 'issues', 'yearcode', 'iss_code', "issue_type = 'stocktr'"],
