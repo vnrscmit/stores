@@ -2,6 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Bin;
+use App\Models\Classification;
+use App\Models\Item;
+use App\Models\Party;
+use App\Models\SubBin;
+use App\Models\User;
+use App\Models\Warehouse;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,5 +37,17 @@ class AppServiceProvider extends ServiceProvider
 
         // Prevent any user from listing other users (IDOR hardening).
         Gate::define('viewAny', fn ($user) => $user->role === 'admin');
+
+        // Readable audit record types: table-name aliases for the models the
+        // audit trail tracks (unmapped classes keep their FQCN).
+        Relation::morphMap([
+            'users' => User::class,
+            'warehouses' => Warehouse::class,
+            'bins' => Bin::class,
+            'sub_bins' => SubBin::class,
+            'classifications' => Classification::class,
+            'items' => Item::class,
+            'parties' => Party::class,
+        ]);
     }
 }

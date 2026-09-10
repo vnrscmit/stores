@@ -45,7 +45,11 @@ class DashboardController extends Controller
     private function adminModules(): array
     {
         return [
-            ['label' => 'Masters', 'url' => '#', 'desc' => 'Warehouse, bins, classification, items, parties'],
+            ['label' => 'Warehouses', 'url' => route('masters.warehouses.index'), 'desc' => 'Warehouse master'],
+            ['label' => 'Bins & Sub-bins (SLOC)', 'url' => route('masters.bins.index'), 'desc' => 'Bin master; new bins seed sub-bins 1-20'],
+            ['label' => 'Classifications', 'url' => route('masters.classifications.index'), 'desc' => 'Classification master'],
+            ['label' => 'Items', 'url' => route('masters.items.index'), 'desc' => 'Item master with UoM and reorder levels'],
+            ['label' => 'Parties', 'url' => route('masters.parties.index'), 'desc' => 'Vendor, C&F, dealer and transfer parties'],
             ['label' => 'Users & Roles', 'url' => '#', 'desc' => 'Operators, e-indent raisers, viewers'],
             ['label' => 'Year Setting', 'url' => '#', 'desc' => 'Active fiscal year and year-end close'],
             ['label' => 'Reports', 'url' => route('viewer.reports.index'), 'desc' => 'Stock, ledger and movement reports'],

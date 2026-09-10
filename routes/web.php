@@ -3,6 +3,12 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Masters\BinController;
+use App\Http\Controllers\Masters\ClassificationController;
+use App\Http\Controllers\Masters\ItemController;
+use App\Http\Controllers\Masters\PartyController;
+use App\Http\Controllers\Masters\SubBinController;
+use App\Http\Controllers\Masters\WarehouseController;
 use App\Http\Controllers\Viewer\ReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +46,21 @@ Route::middleware(['auth', 'fy'])->group(function () {
         ->middleware('role:eindent')->name('eindent.home');
     Route::get('/viewer', [DashboardController::class, 'viewer'])
         ->middleware('role:viewer')->name('viewer.home');
+});
+
+// Masters (Phase 9 slice) ----------------------------------------------------
+Route::middleware(['auth', 'fy', 'can:manage-masters'])->prefix('masters')->name('masters.')->group(function () {
+    foreach ([
+        'warehouses' => WarehouseController::class,
+        'bins' => BinController::class,
+        'subbins' => SubBinController::class,
+        'classifications' => ClassificationController::class,
+        'items' => ItemController::class,
+        'parties' => PartyController::class,
+    ] as $prefix => $controller) {
+        Route::get("/{$prefix}/export", [$controller, 'export'])->name("{$prefix}.export");
+        Route::resource($prefix, $controller)->except(['show']);
+    }
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Legacy source: tbl_stores (storesd).
@@ -26,5 +27,10 @@ class Item extends Model
     public function classification(): BelongsTo
     {
         return $this->belongsTo(Classification::class, 'classification_id', 'classification_id');
+    }
+
+    public function reorderLevels(): HasMany
+    {
+        return $this->hasMany(ReorderLevel::class, 'items_id', 'items_id');
     }
 }

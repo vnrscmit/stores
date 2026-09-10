@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Legacy source: tbl_classification (storesd).
@@ -21,4 +22,9 @@ class Classification extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(Item::class, 'classification_id', 'classification_id');
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Legacy source: tbl_bin (storesd).
@@ -26,5 +27,10 @@ class Bin extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'whid', 'whid');
+    }
+
+    public function subBins(): HasMany
+    {
+        return $this->hasMany(SubBin::class, 'binid', 'binid');
     }
 }

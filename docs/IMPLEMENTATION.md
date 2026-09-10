@@ -72,6 +72,23 @@ php artisan phase1:smoke                        # acceptance checks
 - The previous migration's target DB (`stores_laravel`) was backed up to
   `storage/app/backups/` before this rebuild.
 
+## Masters slice (Phase 9 — implemented 2026-09-09)
+
+Six master modules ported: warehouse, bin, sub-bin (SLOC), classification,
+item, party. Each has admin-gated routes (`can:manage-masters`), FormRequest
+validation mirroring legacy duplicate checks, server-side search, pagination,
+and audit rows via `App\Support\Audit` (before/after JSON, user, IP).
+
+Legacy-parity decisions (documented in controller headers):
+- Bin create seeds sub-bins 1..20 (legacy add_bin.php).
+- Bin delete cascades sub-bins — now transactional (legacy was two-step).
+- Sub-bin delete stays disabled (commented out of legacy include/delete.php).
+- Hard deletes on all six masters (legacy parity); InnoDB FKs now guard
+  referenced masters where legacy silently orphaned children.
+- Deliberate fixes vs legacy: sub-bin uniqueness scoped per bin (legacy
+  checked globally); sub-bin update targets a single sid (legacy rewrote all
+  sub-bins of the bin); India parties require a state (was JS-only).
+
 ## Next phases (per approved plan)
 
 Masters CRUD → e-Indent raise → Issue-against-e-Indent (StockLedgerService
