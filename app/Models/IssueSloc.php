@@ -23,6 +23,11 @@ class IssueSloc extends Model
 
     protected $guarded = [];
 
+    public function issueRow(): BelongsTo
+    {
+        return $this->belongsTo(StockLedgerGood::class, 'issue_rowid');
+    }
+
     /** The issue-item line this stock-location entry belongs to. */
     public function issueItem(): BelongsTo
     {

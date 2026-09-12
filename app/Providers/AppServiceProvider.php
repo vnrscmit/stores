@@ -3,11 +3,14 @@
 namespace App\Providers;
 
 use App\Models\Bin;
+use App\Models\Captive;
+use App\Models\CaptiveItem;
 use App\Models\Classification;
 use App\Models\EIndent;
 use App\Models\EIndentItem;
 use App\Models\Issue;
 use App\Models\IssueItem;
+use App\Models\IssueType;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\SubBin;
@@ -56,6 +59,11 @@ class AppServiceProvider extends ServiceProvider
             'e_indent_items' => EIndentItem::class,
             'issues' => Issue::class,
             'issue_items' => IssueItem::class,
+            'issue_types' => IssueType::class,
+            'captives' => Captive::class,
+            'captive_items' => CaptiveItem::class,
+            'captive_slocs' => CaptiveSloc::class,
+            'issue_slocs' => IssueSloc::class,
         ]);
     }
 }

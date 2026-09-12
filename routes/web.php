@@ -14,6 +14,7 @@ use App\Http\Controllers\Masters\PartyController;
 use App\Http\Controllers\Masters\SubBinController;
 use App\Http\Controllers\Masters\WarehouseController;
 use App\Http\Controllers\Viewer\ReportController;
+use App\Support\IssueTypes;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -103,6 +104,53 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('issues/einde
         ->whereNumber(['indent', 'line'])->name('lines.availability');
     Route::post('/{indent}/post', [EIssueController::class, 'post'])->whereNumber('indent')->name('post');
     Route::get('/print/{issue}', [EIssueController::class, 'show'])->whereNumber('issue')->name('show');
+});
+
+// Self-contained issue types (Phase 7 slice): physical indent, stock transfer,
+// MRTV. Legacy: add_issu_physical_indent.php / add_issue_str_view.php /
+// add_issue_mrtv_view.php + the getuser_issue_* AJAX families.
+use App\Http\Controllers\Issue\CaptiveController;
+use App\Http\Controllers\Issue\IssueAvailabilityController;
+use App\Http\Controllers\Issue\IssueController;
+
+foreach (IssueTypes::all() as $issueType) {
+    // The type lives in the literal URL prefix; parameter-less routes pass it
+    // through via ->defaults. Model-bound actions (lines, workspace, post,
+    // print) receive no defaults — a route default would shift Laravel's
+    // positional parameter filling — and validate the type via the bound
+    // model instead (the issue/line carries its own issue_type).
+    Route::middleware(['auth', 'fy', 'can:post-transactions'])
+        ->prefix("issues/{$issueType}")
+        ->name("issues.{$issueType}.")
+        ->group(function () use ($issueType) {
+            Route::get('/', [IssueController::class, 'index'])->name('index')->defaults('type', $issueType);
+            Route::get('/new', [IssueController::class, 'create'])->name('create')->defaults('type', $issueType);
+            Route::get('/availability/{classification}/{item}', [IssueAvailabilityController::class, 'availability'])
+                ->whereNumber(['classification', 'item'])->name('availability');
+            Route::post('/lines', [IssueController::class, 'storeLine'])->name('lines.store')->defaults('type', $issueType);
+            Route::put('/lines/{line}/update', [IssueController::class, 'updateLine'])->whereNumber('line')->name('lines.update');
+            Route::delete('/lines/{line}', [IssueController::class, 'deleteLine'])->whereNumber('line')->name('lines.delete');
+            Route::get('/workspace/{issue}', [IssueController::class, 'workspace'])->whereNumber('issue')->name('workspace');
+            Route::put('/workspace/{issue}/header', [IssueController::class, 'updateHeader'])->whereNumber('issue')->name('header.update');
+            Route::post('/workspace/{issue}/post', [IssueController::class, 'post'])->whereNumber('issue')->name('post');
+            Route::get('/print/{issue}', [IssueController::class, 'show'])->whereNumber('issue')->name('show');
+        });
+}
+
+// Captive consumption (internal CC — Phase 7 slice). Legacy:
+// add_internalcc.php + getuser_capetdupdate.php + add_cc_preview.php.
+Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('issues/cc')->name('issues.cc.')->group(function () {
+    Route::get('/', [CaptiveController::class, 'index'])->name('index');
+    Route::get('/new', [CaptiveController::class, 'create'])->name('create');
+    Route::get('/availability/{classification}/{item}', [IssueAvailabilityController::class, 'availability'])
+        ->whereNumber(['classification', 'item'])->name('availability');
+    Route::post('/lines', [CaptiveController::class, 'storeLine'])->name('lines.store');
+    Route::put('/lines/{line}/update', [CaptiveController::class, 'updateLine'])->whereNumber('line')->name('lines.update');
+    Route::delete('/lines/{line}', [CaptiveController::class, 'deleteLine'])->whereNumber('line')->name('lines.delete');
+    Route::get('/workspace/{captive}', [CaptiveController::class, 'workspace'])->whereNumber('captive')->name('workspace');
+    Route::put('/workspace/{captive}/header', [CaptiveController::class, 'updateHeader'])->whereNumber('captive')->name('header.update');
+    Route::post('/workspace/{captive}/post', [CaptiveController::class, 'post'])->whereNumber('captive')->name('post');
+    Route::get('/print/{captive}', [CaptiveController::class, 'show'])->whereNumber('captive')->name('show');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

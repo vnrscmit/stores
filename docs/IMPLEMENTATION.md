@@ -155,8 +155,56 @@ add_issue_eindents_preview.php (final post — the stock ledger writer).
 - A `status` column (open|posted) mirrors issuetrflag as a readable state
   (see EIssueStatus); audit rows for open/line create/update/delete/post.
 
+## Movement types: pindent, stocktr, MRTV, captive consumption (Phase 7 slice)
+
+Ported from add_issu_physical_indent.php, add_issue_str_view.php,
+add_issue_mrtv_view.php + the getuser_issue_{pindent,str,mrtv}* AJAX
+families and add_issue_{pindents,str,mrtv}_preview.php (posting), plus the
+parallel captive-consumption family add_internalcc.php /
+getuser_capetdupdate.php / add_cc_preview.php (tbl_captive + tbl_captivesub
++ tbl_captive_sloc, trtype/trsubtype 'CC').
+
+- The three issue types share the `issues` skeleton (issue_type column) and
+  one controller (IssueController); the header is created on the FIRST line
+  post (legacy trid=0 branch) with issue_code = MAX+1 per yearcode x type,
+  lock-guarded. Lines are self-contained: item + qty + uom + distribution
+  (no source indent). Header fields per type: pindent stores the physical
+  indent no in dcrefno and the raiser in strefno; stocktr stores the
+  transfer ref in strefno (+ party_id, strdate, rettyp); MRTV stores the
+  party DC ref in dcrefno (+ party_id). Conditional transit fields
+  (Transport/Courier/By Hand) validated server-side.
+- Per line: distribution rows validated at save (ledger row exists +
+  belongs to the item, qty <= live balance, Σ = line qty) and re-validated
+  at post; edit = delete-and-reinsert (legacy semantics); line qty IS
+  editable (legacy edtupdate wrote qty=qty).
+- Final post (transactional, idempotent): StockLedgerService::post per sloc
+  row (trtype 'Issue', trsubtype = issue_type, partyid = party_id or 0),
+  applyReorderFlag per line item, then committed serials from per-type
+  counters issue.{type} / issue.{type}.n (bootstrapped from legacy MAX),
+  issuetrflag=1 + status=posted. Display prefixes preserved: TIP (pindent),
+  TIS entry / IS committed (stocktr), IM (mrtv) — IssueNumbering handles
+  the per-type prefix, workspace serials stay MAX+1 per type.
+- Captive consumption (CC) is a separate controller (CaptiveController)
+  over captives/captive_items/captive_slocs: header may reference a party
+  master OR free-form party details (legacy txt12 branches); lines carry an
+  item condition (`type`) and NO entered quantity — the line qty/ups are
+  the distribution sums (legacy `update tbl_captivesub set ups=totups,
+  qty=totqty`); post writes trtype/trsubtype 'CC' rows and assigns
+  cc_code/ncode (captive.vendor / captive.vendor.n counters), ccflg=1.
+- Legacy bugs fixed in the port (documented in code): posting was not
+  transactional (could go negative or double-post); edit-time balance
+  checks were JS-only; the CC note-print header wrote literal 'txtremarks'
+  into the remarks column and duplicated lrno into docketno; MAX+1 races
+  on issue_code/iss_code/ncode/cc_code.
+- A shared `status` column (open|posted) now mirrors issuetrflag AND
+  ccflg (see EIssueStatus); audit rows for open/line create/update/delete/
+  header update/post per module (`issue.pindent`, `issue.stocktr`,
+  `issue.mrtv`, `cc.consumption`). One availability endpoint
+  (IssueAvailabilityController) serves all four entry screens.
+
 ## Next phases (per approved plan)
 
-Issue-against-e-Indent (StockLedgerService first caller, consumes approved
-indents) → remaining movement types → bincard → remaining reports →
+Issue-against-e-Indent (done) and movement types pindent/stocktr/MRTV/CC
+(done) → bincard → remaining reports → arrivals family (vendor GRN, stock
+transfer in, internal) → discard/excess-shortage/gate movements →
 QR/backup/audit screens → UI unify → performance → cutover docs.

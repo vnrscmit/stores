@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\EIssueStatus;
+use App\Support\IssueTypes;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -39,6 +40,12 @@ class Issue extends Model
     public function items(): HasMany
     {
         return $this->hasMany(IssueItem::class, 'issue_id', 'issue_id');
+    }
+
+    /** Title-case display for the lower-case issue_type column spelling. */
+    public function issueType(): string
+    {
+        return IssueTypes::label($this->issue_type);
     }
 
     public function isPosted(): bool

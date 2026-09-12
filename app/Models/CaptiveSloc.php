@@ -21,4 +21,9 @@ class CaptiveSloc extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    public function issueRow(): BelongsTo
+    {
+        return $this->belongsTo(StockLedgerGood::class, 'issue_rowid_');
+    }
 }

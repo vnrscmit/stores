@@ -19,8 +19,12 @@ class DashboardController extends Controller
             'modules' => [
                 ['label' => 'Issue against e-Indent', 'url' => route('issues.eindents.pending'), 'desc' => 'Issue stock against committed e-Indents'],
                 ['label' => 'Issue log', 'url' => route('issues.eindents.index'), 'desc' => 'Open and posted e-Indent issues'],
+                ['label' => 'Issue against Physical Indent', 'url' => route('issues.pindent.index'), 'desc' => 'Self-contained issues with free line entry'],
+                ['label' => 'Issue — Stock Transfer', 'url' => route('issues.stocktr.index'), 'desc' => 'Stock transfers out with transit details'],
+                ['label' => 'Issue — Material Return to Vendor', 'url' => route('issues.mrtv.index'), 'desc' => 'Material returns to the party'],
+                ['label' => 'Captive Consumption', 'url' => route('issues.cc.index'), 'desc' => 'Internal consumption notes (CC)'],
                 ['label' => 'Arrivals', 'url' => '#', 'desc' => 'Vendor GRN, stock transfer in, internal'],
-                ['label' => 'Captive Consumption', 'url' => '#', 'desc' => 'Vendor / internal consumption notes'],
+                ['label' => 'Adjustments', 'url' => '#', 'desc' => 'Discard, excess/shortage, gate movements'],
                 ['label' => 'Adjustments', 'url' => '#', 'desc' => 'Discard, excess/shortage, gate movements'],
             ],
         ]);
