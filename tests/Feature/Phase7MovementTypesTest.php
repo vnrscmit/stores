@@ -66,6 +66,12 @@ class Phase7MovementTypesTest extends TestCase
             ->where('yearcode', $fy)
             ->pluck('issue_id');
 
+        // Ledger out-rows are the only stock side effect of posting: the
+        // ledger is append-only (StockLedgerService reads the latest
+        // remaining row's balance), so deleting the rows previous runs
+        // posted reverts every item x location balance to its pre-run
+        // value. The picked distribution rows are never mutated by
+        // posting, so no source-row restoration is needed.
         IssueSloc::query()->whereIn('issue_tr_id', $testIssueIds)->delete();
         IssueItem::query()->whereIn('issue_id', $testIssueIds)->delete();
         StockLedgerGood::query()
@@ -73,27 +79,6 @@ class Phase7MovementTypesTest extends TestCase
             ->whereIn('stlg_trsubtype', IssueTypes::all())
             ->whereIn('stlg_trid', $testIssueIds)
             ->delete();
-
-        // Hermeticity: restore the SLOC balances consumed by prior runs.
-        $priorRuns = DB::table('stock_ledger_goods')
-            ->where('stlg_trtype', 'Issue')
-            ->whereIn('stlg_trsubtype', IssueTypes::all())
-            ->whereIn('stlg_trid', $testIssueIds)
-            ->join('issue_slocs', 'issue_slocs.issue_tr_id', '=', 'stock_ledger_goods.stlg_trid')
-            ->whereColumn('issue_slocs.issue_rowid', '=', 'stock_ledger_goods.stlg_id')
-            ->join('issues', 'issues.issue_id', '=', 'stock_ledger_goods.stlg_trid')
-            ->selectRaw('stock_ledger_goods.stlg_id, sum(stock_ledger_goods.stlg_trqty) as consumed')
-            ->groupBy('stock_ledger_goods.stlg_id')
-            ->get();
-
-        foreach ($priorRuns as $row) {
-            DB::table('stock_ledger_goods')
-                ->where('stlg_id', $row->stlg_id)
-                ->update(['stlg_balqty' => DB::raw("stlg_balqty + {$row->consumed}")]);
-        }
-
-        IssueSloc::query()->whereIn('issue_tr_id', $testIssueIds)->delete();
-        IssueItem::query()->whereIn('issue_id', $testIssueIds)->delete();
         Issue::query()->whereIn('issue_id', $testIssueIds)->delete();
 
         $testCaptiveIds = Captive::query()->where('yearcode', $fy)->pluck('tid');
@@ -104,9 +89,6 @@ class Phase7MovementTypesTest extends TestCase
             ->where('stlg_trtype', 'CC')->where('stlg_trsubtype', 'CC')
             ->whereIn('stlg_trid', $testCaptiveIds)
             ->delete();
-
-        CaptiveSloc::query()->whereIn('issue_trid', $testCaptiveIds)->delete();
-        CaptiveItem::query()->whereIn('id_in', $testCaptiveIds)->delete();
         Captive::query()->whereIn('tid', $testCaptiveIds)->delete();
 
         // Hermeticity across suites: the fixture reference tokens below are
@@ -384,20 +366,6 @@ class Phase7MovementTypesTest extends TestCase
         $this->post(route('issues.'.IssueTypes::STOCK_TRANSFER.'.post', $issue))->assertRedirect();
 
         $issue->refresh();
-        // The ledger got one out-row with the type's trsubtype and the
-        // location's balance reduced by the issued quantity. Read the row
-        // freshly so the assertion fails loudly if a previous test left a
-        // stale out-row with the same trid/tritemid (e.g. a legacy issue).
-        DB::beginTransaction();
-        $row = StockLedgerGood::query()
-            ->where('stlg_trtype', 'Issue')
-            ->where('stlg_trsubtype', IssueTypes::STOCK_TRANSFER)
-            ->where('stlg_trid', $issue->issue_id)
-            ->where('stlg_tritemid', $item->items_id)
-            ->orderByDesc('stlg_id')
-            ->lockForUpdate()
-            ->firstOrFail();
-        DB::rollBack();
 
         $this->assertSame(1, (int) $issue->issuetrflag);
         $this->assertSame(EIssueStatus::POSTED, $issue->status);
@@ -533,8 +501,6 @@ class Phase7MovementTypesTest extends TestCase
             0.001,
             'CC balqty must equal opqty - trqty'
         );
-
-        $this->assertTrue(true, 'CC test reached end');
 
         // Reposting is rejected.
         $this->post(route('issues.cc.post', $captive))

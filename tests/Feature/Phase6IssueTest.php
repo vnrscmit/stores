@@ -51,7 +51,11 @@ class Phase6IssueTest extends TestCase
         // Hermeticity: this suite shares the migrated test database across
         // runs, so remove artifacts previous runs posted (issues, their
         // ledger rows and the ZZTEST fixture indents). Balances revert to
-        // the migrated baseline because the posted rows are gone.
+        // the migrated baseline because the ledger is append-only: deleting
+        // the posted out-rows restores every item x location balance to
+        // its pre-run value. Posting never mutates the picked distribution
+        // rows, so no source-row restoration is needed. Captive rows are
+        // owned by the Phase-7 CC suite's cleanup.
         $fy = FiscalYear::yearcode();
 
         $testIssueIds = Issue::query()
