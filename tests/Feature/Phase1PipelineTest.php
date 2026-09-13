@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\LegacyStageImport;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -24,10 +25,13 @@ class Phase1PipelineTest extends TestCase
             return;
         }
 
-        // Run the real pipeline once against the test DB. Idempotent: staging
-        // is dropped/recreated, final tables truncated before insert.
+        // Run the real pipeline once against the test DB, over the reduced
+        // test subset (--limit keeps big legacy tables capped and their
+        // detail rows FK-coherent — see LegacyStageImport::copySubset).
+        // Idempotent: staging is dropped/recreated, final tables truncated
+        // before insert.
         $this->artisan('migrate:fresh', ['--force' => true]);
-        $this->artisan('legacy:stage-import');
+        $this->artisan('legacy:stage-import', ['--limit' => (string) LegacyStageImport::TEST_SUBSET_LIMIT]);
         $this->artisan('legacy:migrate-data');
         $this->artisan('legacy:integrity-fix', ['--strategy' => 'placeholder']);
         $this->artisan('legacy:add-constraints');

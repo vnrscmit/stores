@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\LegacyStageImport;
 use App\Models\AuditLog;
 use App\Models\Captive;
 use App\Models\CaptiveItem;
@@ -42,7 +43,7 @@ class Phase7MovementTypesTest extends TestCase
         if (! self::$pipelineReady) {
             if (! Schema::hasTable('users')) {
                 $this->artisan('migrate:fresh', ['--force' => true]);
-                $this->artisan('legacy:stage-import');
+                $this->artisan('legacy:stage-import', ['--limit' => (string) LegacyStageImport::TEST_SUBSET_LIMIT]);
                 $this->artisan('legacy:migrate-data');
                 $this->artisan('legacy:integrity-fix', ['--strategy' => 'placeholder']);
                 $this->artisan('legacy:integrity-fix', ['--strategy' => 'null']);
@@ -103,7 +104,7 @@ class Phase7MovementTypesTest extends TestCase
         // because PHPUnit may fork per-test processes.
         if (! Schema::hasTable('items') || StockLedgerGood::query()->count() === 0) {
             $this->artisan('migrate:fresh', ['--force' => true]);
-            $this->artisan('legacy:stage-import');
+            $this->artisan('legacy:stage-import', ['--limit' => (string) LegacyStageImport::TEST_SUBSET_LIMIT]);
             $this->artisan('legacy:migrate-data');
             $this->artisan('legacy:integrity-fix', ['--strategy' => 'placeholder']);
             $this->artisan('legacy:integrity-fix', ['--strategy' => 'null']);

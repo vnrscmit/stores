@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\LegacyStageImport;
 use App\Models\EIndent;
 use App\Models\EIndentItem;
 use App\Models\Issue;
@@ -35,7 +36,7 @@ class Phase6IssueTest extends TestCase
         if (! self::$pipelineReady) {
             if (! Schema::hasTable('users')) {
                 $this->artisan('migrate:fresh', ['--force' => true]);
-                $this->artisan('legacy:stage-import');
+                $this->artisan('legacy:stage-import', ['--limit' => (string) LegacyStageImport::TEST_SUBSET_LIMIT]);
                 $this->artisan('legacy:migrate-data');
                 $this->artisan('legacy:integrity-fix', ['--strategy' => 'placeholder']);
                 $this->artisan('legacy:integrity-fix', ['--strategy' => 'null']);
