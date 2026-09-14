@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Viewer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Viewer\ConsumptionRequest;
 use App\Http\Requests\Viewer\LedgerRequest;
 use App\Http\Requests\Viewer\StockOnHandRequest;
 use App\Models\Bin;
@@ -33,6 +34,7 @@ class ReportController extends Controller
             ['code' => 'stock-on-hand', 'label' => 'Stock On Hand (Good)', 'live' => true],
             ['code' => 'item-ledger', 'label' => 'Stores Item Ledger', 'live' => true],
             ['code' => 'stock-transfer', 'label' => 'Stock Transfer (Party-wise)', 'live' => true],
+            ['code' => 'bincard', 'label' => 'Sub-Bin Card', 'live' => true],
             ['code' => 'stock-on-hand-damage', 'label' => 'Stock On Hand (Damage)', 'live' => false],
             ['code' => 'consumption', 'label' => 'Consumption (Item-wise)', 'live' => false],
             ['code' => 'discard', 'label' => 'Discard Report', 'live' => false],
@@ -251,5 +253,232 @@ class ReportController extends Controller
         }
 
         return $rows;
+    }
+
+    // Consumption (item-wise) ----------------------------------------------------
+    // Legacy: reports/consumption_report + consumption_report1 + consumption_report2.
+
+    public function consumption(ConsumptionRequest $request): View
+    {
+        [$from, $to, $classificationId, $itemId] = $request->filters();
+
+        $rows = $this->consumptionRows($from, $to, $classificationId, $itemId);
+
+        return view('viewer.reports.consumption', [
+            'rows' => $rows,
+            'from' => $from,
+            'to' => $to,
+            'classificationId' => $classificationId,
+            'itemId' => $itemId,
+            'perticulars' => '',
+        ]);
+    }
+
+    public function consumptionExport(ConsumptionRequest $request): StreamedResponse|BinaryFileResponse
+    {
+        [$from, $to, $classificationId, $itemId] = $request->filters();
+
+        return Excel::stream(
+            'consumption-'.($itemId ?: 'all').'-'.str_replace(['-', ':'], '', $from).'-'.str_replace(['-', ':'], '', $to).'.xlsx',
+            ['Classification', 'Item', 'UoM', 'Issue UPS', 'Issue Qty', 'Internal Return UPS', 'Internal Return Qty', 'Used Qty UPS', 'Used Qty'],
+            $this->consumptionRows($from, $to, $classificationId, $itemId, forExport: true)
+        );
+    }
+
+    private function consumptionRows(string $from, string $to, ?int $classificationId, ?int $itemId, bool $forExport = false): array
+    {
+        // Legacy parity (consumption_report1.php): per item x date x type x subtype
+        // x sub-bin, aggregate receive/issue/used columns, with Issue = sum of
+        // issue-family movements (minus internal returns), Internal Return = sum
+        // of Arrival( Internalreturn ), Used = Issue - Internal Return.
+        $itemsQuery = StockLedgerGood::query()
+            ->select('stlg_tritemid', 'stlg_trclassid')
+            ->whereBetween('stlg_trdate', [$from, $to])
+            ->when($classificationId, fn ($q, $c) => $q->where('stlg_trclassid', $c))
+            ->when($itemId, fn ($q, $i) => $q->where('stlg_tritemid', $i))
+            ->distinct();
+
+        $rows = [];
+        $items = $itemsQuery->orderBy('stlg_tritemid')->get();
+
+        foreach ($items as $item) {
+            $itemRow = Item::with('classification')
+                ->where('items_id', $item->stlg_tritemid)
+                ->where('actstatus', 'Active')
+                ->first();
+
+            if ($itemRow === null) {
+                continue;
+            }
+
+            $rows = array_merge($rows, $this->consumptionItemRows(
+                $item->stlg_tritemid,
+                $item->stlg_trclassid,
+                $itemRow,
+                $from,
+                $to,
+                $forExport,
+            ));
+
+            if (! $forExport && count($rows) >= 500) {
+                return $rows;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function consumptionItemRows(
+        int $itemId,
+        int $classId,
+        Item $itemRow,
+        string $from,
+        string $to,
+        bool $forExport,
+    ): array {
+        $rows = [];
+
+        $byDate = StockLedgerGood::query()
+            ->selectRaw('stlg_trdate, stlg_trtype, stlg_trsubtype, stlg_trid,'.
+                'SUM(stlg_trups) AS trups, SUM(stlg_trqty) AS trqty,'.
+                'SUM(stlg_balups) AS balups, SUM(stlg_balqty) AS balqty,'.
+                'SUM(stlg_opups) AS opups, SUM(stlg_opqty) AS opqty,'.
+                'stlg_id')
+            ->where('stlg_tritemid', $itemId)
+            ->where('stlg_trclassid', $classId)
+            ->whereBetween('stlg_trdate', [$from, $to])
+            ->where('stlg_trsubtype', '!=', 'SUO')
+            ->groupBy('stlg_trdate', 'stlg_trtype', 'stlg_trsubtype', 'stlg_trid', 'stlg_subbinid')
+            ->orderBy('stlg_trdate')
+            ->orderBy('stlg_id');
+
+        // Legacy prints date rows in date ascending order (within each item).
+        foreach ($byDate->get() as $rowNew) {
+            $cn = 0;
+            $recups = 0;
+            $recqty = 0;
+            $issups = 0;
+            $issqty = 0;
+
+            // The inner loop below computes the same per-subtype sums as the
+            // legacy report (it re-queries per date x type x subtype x sub-bin).
+            $recups = 0;
+            $recqty = 0;
+            $issups = 0;
+            $issqty = 0;
+
+            foreach ($byDate->get() as $rowNewInner) {
+                $ty = $rowNewInner->stlg_trtype;
+                $tysub = $rowNewInner->stlg_trsubtype;
+
+                if (($ty === 'Arrival' && $tysub === 'Internalreturn')) {
+                    $recups += (int) $rowNewInner->trups;
+                    $recqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'Issue' && $tysub === 'pindent') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'Issue' && $tysub === 'eindent') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'Issue' && $tysub === 'stocktr') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'Issue' && $tysub === 'MReturnV') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'IT' && $tysub === 'ITI') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'IT' && $tysub === 'ITA') {
+                    $recups += (int) $rowNewInner->trups;
+                    $recqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'GD') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'DG') {
+                    $recups += (int) $rowNewInner->trups;
+                    $recqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'CC') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'CI') {
+                    if ($rowNewInner->trqty >= $rowNewInner->opqty) {
+                        $recups += (int) $rowNewInner->trups;
+                        $recqty += (float) $rowNewInner->trqty;
+                    } else {
+                        $issups += (int) $rowNewInner->trups;
+                        $issqty += (float) $rowNewInner->trqty;
+                    }
+                } elseif ($ty === 'ES' && $tysub === 'ES') {
+                    $recups += (int) $rowNewInner->trups;
+                    $recqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'ES' && $tysub === 'SH') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'SLOC' && $tysub === 'SUC') {
+                    $recups += (int) $rowNewInner->trups;
+                    $recqty += (float) $rowNewInner->trqty;
+                } elseif ($ty === 'SLOC' && $tysub === 'SUO') {
+                    $issups += (int) $rowNewInner->trups;
+                    $issqty += (float) $rowNewInner->trqty;
+                }
+            }
+
+            $totups = $issups - $recups;
+            $totqty = $issqty - $recqty;
+
+            $date = $this->consumptionDateString($rowNew->stlg_trdate);
+
+            if ($forExport) {
+                $rows[] = [
+                    'classification' => $itemRow->classification->classification ?? '',
+                    'item' => $itemRow->stores_item,
+                    'uom' => $itemRow->uom,
+                    'issue_ups' => $issups,
+                    'issue_qty' => $issqty,
+                    'internal_return_ups' => $recups,
+                    'internal_return_qty' => $recqty,
+                    'used_qty_ups' => $totups,
+                    'used_qty' => $totqty,
+                ];
+            } else {
+                $rows[] = [
+                    'classification' => $itemRow->classification->classification ?? '',
+                    'item' => $itemRow->stores_item,
+                    'uom' => $itemRow->uom,
+                    'date' => $date,
+                    'issue_ups' => $issups,
+                    'issue_qty' => $issqty,
+                    'internal_return_ups' => $recups,
+                    'internal_return_qty' => $recqty,
+                    'used_qty_ups' => $totups,
+                    'used_qty' => $totqty,
+                ];
+            }
+
+            if (! $forExport && count($rows) >= 500) {
+                return $rows;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function consumptionPerticulars(
+        ?string $type,
+        ?string $subtype,
+        ?string $doc,
+        ?string $yearcode
+    ): string {
+        return ''; // legacy brought back pindent/eindent label text only.
+    }
+
+    private function consumptionDateString(?string $date): string
+    {
+        if ($date === null) {
+            return '';
+        }
+
+        return $date;
     }
 }

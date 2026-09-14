@@ -169,4 +169,7 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')
 
     Route::get('/bincard', [BincardController::class, 'index'])->name('bincard');
     Route::get('/bincard/export', [BincardController::class, 'export'])->name('bincard.export');
+
+    Route::get('/consumption', [ReportController::class, 'consumption'])->name('consumption');
+    Route::get('/consumption/export', [ReportController::class, 'consumptionExport'])->name('consumption.export');
 });
