@@ -25,6 +25,18 @@ class Phase1PipelineTest extends TestCase
             return;
         }
 
+        // Parallel workers each get a clone of the template DB, which was
+        // already pipeline-built (tests:parallel-db) — re-running the pipeline
+        // per worker would erase the parallel speedup, and staging/final tables
+        // persist, so the parity assertions below stay meaningful. Set
+        // PIPELINE_FRESH=1 to force a real pipeline run (e.g. CI), or use
+        // `php artisan tests:parallel-db --rebuild` to rebuild the template.
+        if (env('PIPELINE_FRESH') !== '1' && Schema::hasTable('users') && Schema::hasTable('legacy_items')) {
+            self::$pipelineReady = true;
+
+            return;
+        }
+
         // Run the real pipeline once against the test DB, over the reduced
         // test subset (--limit keeps big legacy tables capped and their
         // detail rows FK-coherent — see LegacyStageImport::copySubset).

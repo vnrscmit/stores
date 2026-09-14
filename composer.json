@@ -11,6 +11,7 @@
         "maatwebsite/excel": "^3.1"
     },
     "require-dev": {
+        "brianium/paratest": "^7.4",
         "fakerphp/faker": "^1.23",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
@@ -32,6 +33,16 @@
         }
     },
     "scripts": {
+        "test": "php artisan test",
+        "test-parallel": [
+            "@php artisan tests:parallel-db --processes=4",
+            "@php artisan test --parallel --processes=4"
+        ],
+        "test-parallel-rebuild": [
+            "@php artisan tests:parallel-db --rebuild --processes=4",
+            "@php artisan test --parallel --processes=4"
+        ],
+        "test-parallel-cleanup": "@php artisan tests:parallel-db --cleanup",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

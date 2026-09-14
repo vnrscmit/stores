@@ -47,4 +47,19 @@ class User extends Authenticatable
     {
         return $this->status === 'Active';
     }
+
+    /**
+     * Named route of the role dashboard a user lands on after login
+     * (legacy index1 / indexopr / indexindet / indexview parity).
+     */
+    public function homeRoute(): string
+    {
+        return match ($this->role) {
+            'admin' => 'admin.home',
+            'operator' => 'operator.home',
+            'eindent' => 'eindent.home',
+            'viewer' => 'viewer.home',
+            default => 'login',
+        };
+    }
 }

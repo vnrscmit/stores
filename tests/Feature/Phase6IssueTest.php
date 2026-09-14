@@ -413,9 +413,21 @@ class Phase6IssueTest extends TestCase
         $payload['line'] = $line->eid;
         $this->postJson(route('issues.eindents.lines.save', $indent), $payload)->assertOk();
 
+        // Shrink a migrated ledger row in place; restore it afterwards so the
+        // mutation can never leak into later tests (parallel workers may run
+        // any suite against this same clone database).
+        $originalBalqty = StockLedgerGood::query()
+            ->where('stlg_id', $ledger->stlg_id)
+            ->value('stlg_balqty');
         StockLedgerGood::query()->where('stlg_id', $ledger->stlg_id)->update(['stlg_balqty' => 0.5]);
 
-        $this->post(route('issues.eindents.post', $indent))->assertStatus(422);
+        try {
+            $this->post(route('issues.eindents.post', $indent))->assertStatus(422);
+        } finally {
+            StockLedgerGood::query()
+                ->where('stlg_id', $ledger->stlg_id)
+                ->update(['stlg_balqty' => $originalBalqty]);
+        }
 
         // Nothing was posted and the indent is still open.
         $this->assertSame(0, StockLedgerGood::query()

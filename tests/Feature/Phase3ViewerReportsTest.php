@@ -124,14 +124,18 @@ class Phase3ViewerReportsTest extends TestCase
     public function fy_middleware_aborts_without_active_year(): void
     {
         $this->actAs('viewer');
+        $activeIds = DB::table('financial_years')->where('years_flg', 1)->pluck('yearsid');
         DB::table('financial_years')->update(['years_flg' => 0]);
 
         // The static FY cache would serve the stale row within this process.
         FiscalYear::invalidateForTesting();
 
-        $this->get('/viewer/reports')->assertServerError();
-
-        // restore
-        DB::table('financial_years')->limit(1)->update(['years_flg' => 1, 'years_status' => 'a']);
+        try {
+            $this->get('/viewer/reports')->assertServerError();
+        } finally {
+            // Restore the exact row(s) that were active before (order-
+            // independent: parallel workers share this clone database).
+            DB::table('financial_years')->whereIn('yearsid', $activeIds)->update(['years_flg' => 1, 'years_status' => 'a']);
+        }
     }
 }

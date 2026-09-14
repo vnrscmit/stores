@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -52,82 +53,128 @@ class Phase2AuthTest extends TestCase
     /** @test */
     public function each_role_logs_into_its_own_dashboard(): void
     {
+        // Staged passwords are unrecoverable hashes, so give one user per role
+        // a known credential (restored afterwards — workers may run test
+        // methods in any order, so mutations must never leak).
         foreach (['admin', 'operator', 'eindent', 'viewer'] as $role) {
-            $user = $user = $this->userForRole($role);
+            $user = $this->userForRole($role);
+            $original = ['password' => $user->password, 'status' => $user->status];
 
-            // Test with the known staged plaintext credential.
-            $response = $this->post('/login', [
-                'login' => $user->login,
-                'password' => 'demo123',
-            ]);
+            try {
+                $user->update(['password' => 'demo123', 'status' => 'Active']);
 
-            if (! $this->loginWorked($user, 'demo123')) {
-                continue; // credential not in staged data for this user
+                $response = $this->post('/login', [
+                    'login' => $user->login,
+                    'password' => 'demo123',
+                ]);
+
+                $response->assertRedirect(route($user->homeRoute()));
+
+                // viewer.home deliberately forwards to the reports index
+                // (legacy indexview parity), so follow one hop if given.
+                $dashboard = $this->get(route($user->homeRoute()));
+                if ($dashboard->isRedirect()) {
+                    $dashboard = $this->get($dashboard->headers->get('Location'));
+                }
+                $dashboard->assertOk();
+
+                $this->post('/logout');
+            } finally {
+                // Raw update bypassing casts — the migrated hash (bcrypt cost
+                // 12) cannot pass the 'hashed' cast's configuration check
+                // under the suite's BCRYPT_ROUNDS=4.
+                DB::table('users')->where('id', $user->getKey())->update($original);
             }
-
-            $response->assertRedirect(route($user->homeRoute()));
-            $this->get(route($user->homeRoute()))->assertOk();
-            $this->post('/logout');
         }
-
-        $this->assertTrue(true);
     }
 
     /** @test */
     public function suspended_accounts_cannot_log_in(): void
     {
         $user = User::query()->where('role', 'viewer')->firstOrFail();
-        $user->update(['status' => 'Suspend', 'password' => 'demo123']);
+        $original = ['password' => $user->password, 'status' => $user->status];
 
-        $this->post('/login', ['login' => $user->login, 'password' => 'demo123'])
-            ->assertSessionHasErrors('login');
+        try {
+            $user->update(['status' => 'Suspend', 'password' => 'demo123']);
 
-        $this->assertGuest();
+            $this->post('/login', ['login' => $user->login, 'password' => 'demo123'])
+                ->assertSessionHasErrors('login');
+
+            $this->assertGuest();
+        } finally {
+            // Raw update: the migrated hash (bcrypt cost 12) cannot pass the
+            // 'hashed' cast's configuration check under the suite's
+            // BCRYPT_ROUNDS=4, so bypass Eloquent casts when restoring.
+            DB::table('users')->where('id', $user->getKey())->update($original);
+        }
     }
 
     /** @test */
     public function wrong_password_is_rejected(): void
     {
         $user = User::query()->where('role', 'admin')->firstOrFail();
-        $user->update(['password' => 'correct-horse']);
+        $original = $user->password;
 
-        $this->post('/login', ['login' => $user->login, 'password' => 'wrong'])
-            ->assertSessionHasErrors('login');
+        try {
+            $user->update(['password' => 'correct-horse']);
 
-        $this->assertGuest();
+            $this->post('/login', ['login' => $user->login, 'password' => 'wrong'])
+                ->assertSessionHasErrors('login');
+
+            $this->assertGuest();
+        } finally {
+            // Raw update bypassing casts — see note above.
+            DB::table('users')->where('id', $user->getKey())->update(['password' => $original]);
+        }
     }
 
     /** @test */
     public function legacy_plaintext_password_is_upgraded_to_bcrypt(): void
     {
         $user = User::query()->where('role', 'operator')->firstOrFail();
-        $user->forceFill(['password' => 'plainpass'])->save();
+        $original = $user->password;
 
-        $this->post('/login', ['login' => $user->login, 'password' => 'plainpass'])
-            ->assertRedirect();
+        try {
+            $user->forceFill(['password' => 'plainpass'])->save();
 
-        $fresh = $user->fresh();
-        $this->assertTrue(Hash::check('plainpass', $fresh->password), 'password was not re-hashed');
-        $this->assertStringStartsWith('$2y$', $fresh->password);
+            $this->post('/login', ['login' => $user->login, 'password' => 'plainpass'])
+                ->assertRedirect();
+
+            $fresh = $user->fresh();
+            $this->assertTrue(Hash::check('plainpass', $fresh->password), 'password was not re-hashed');
+            $this->assertStringStartsWith('$2y$', $fresh->password);
+        } finally {
+            // Raw update bypassing casts — see note above.
+            DB::table('users')->where('id', $user->getKey())->update(['password' => $original]);
+        }
     }
 
     /** @test */
     public function question_answer_reset_sets_new_password(): void
     {
         $user = User::query()->where('role', 'admin')->firstOrFail();
-        $user->forceFill(['question' => 'Favourite colour?', 'answer' => 'teal', 'password' => 'oldpass'])->save();
+        $original = ['password' => $user->password, 'question' => $user->question, 'answer' => $user->answer];
 
-        $this->post('/forgot-password', ['login' => $user->login, 'answer' => 'Teal'])
-            ->assertRedirect(route('password.reset'));
+        try {
+            $user->forceFill(['question' => 'Favourite colour?', 'answer' => 'teal', 'password' => 'oldpass'])->save();
 
-        $this->get(route('password.reset'))->assertOk();
+            $this->post('/forgot-password', ['login' => $user->login, 'answer' => 'Teal'])
+                ->assertRedirect(route('password.reset'));
 
-        $this->post('/reset-password', [
-            'password' => 'brand-new-pass',
-            'password_confirmation' => 'brand-new-pass',
-        ])->assertRedirect(route('login'));
+            $this->get(route('password.reset'))->assertOk();
 
-        $this->assertTrue(Hash::check('brand-new-pass', $user->fresh()->password));
+            $this->post('/reset-password', [
+                'password' => 'brand-new-pass',
+                'password_confirmation' => 'brand-new-pass',
+            ])->assertRedirect(route('login'));
+
+            $this->assertTrue(Hash::check('brand-new-pass', $user->fresh()->password));
+        } finally {
+            // Raw update: the migrated hash (bcrypt cost 12) cannot pass the
+            // 'hashed' cast's configuration check under the suite's
+            // BCRYPT_ROUNDS=4, so bypass Eloquent casts when restoring.
+            DB::table('users')->where('id', $user->getKey())->update($original);
+        }
     }
 
     private function loginWorked(User $user, string $password): bool
