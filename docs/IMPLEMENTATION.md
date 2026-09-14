@@ -20,7 +20,7 @@ checkout (only composer.json/artisan/vendor survived).
 | Masters CRUD (warehouse, bin, sub-bin, classification, item, party) + audit logging | ✅ |
 | e-Indent raise module: draft workspace, numbering, submit, approval gate, audit | ✅ |
 | Issue-against-e-Indent: pending queue, SLOC distribution workspace, StockLedgerService posting, indent closing | ✅ |
-| Feature suites: Phase1PipelineTest, Phase2AuthTest, Phase3ViewerReportsTest, Phase4MastersTest, Phase5EIndentTest, Phase6IssueTest | ✅ **54 passed / 266 assertions** on the migrated data; Pint clean (169 files) |
+| Feature suites: Phase1PipelineTest, Phase2AuthTest, Phase3ViewerReportsTest, Phase4MastersTest, Phase5EIndentTest, Phase6IssueTest, Phase7MovementTypesTest | ✅ **65 passed / 361 assertions** on the migrated data; Pint clean; serial and parallel (4/8 workers) green |
 
 ## Pipeline commands
 
@@ -201,6 +201,45 @@ getuser_capetdupdate.php / add_cc_preview.php (tbl_captive + tbl_captivesub
   header update/post per module (`issue.pindent`, `issue.stocktr`,
   `issue.mrtv`, `cc.consumption`). One availability endpoint
   (IssueAvailabilityController) serves all four entry screens.
+
+## Test infrastructure: parallel execution with per-worker database clones
+
+ParaTest (v7.4.9) splits test methods across worker processes; every suite
+shares one populated MariaDB database, so workers need isolated copies.
+
+- **Template DB** (`stores_laravel_test`, wired via `DB_DATABASE_TEST` in
+  phpunit.xml) holds the pipeline-built schema and the reduced dataset.
+- **Per-worker clones** (`stores_laravel_test_1` .. `_N`) are produced by
+  dumping the template and re-importing it, so FK constraints survive
+  (Phase 4 asserts them). `App\Support\ParallelDatabase` manages this
+  boot-free (raw PDO + mysqldump) from `TestCase::setUp()` BEFORE the
+  Laravel app initialises, so it works for every suite uniformly.
+- **Serial runs** (no `TEST_TOKEN`) use the template directly.
+- **Mutations are restored**: Phase 2 restores auth credentials via raw
+  updates, Phase 3 restores the FY row by captured PK, Phase 6 restores
+  the ledger row it shrinks in a `finally` — so workers may run any
+  suite's methods in any order against the same clone without leaking.
+- **Management**: `php artisan tests:parallel-db` (build/repair template
+  and pre-clone workers), `--rebuild` (force a fresh template from the
+  legacy pipeline + compact via dump/drop/reimport), `--cleanup` (drop
+  worker clones), `--processes=N` (pre-clone N workers). Serial suite
+  time dropped from ~226s to ~68s after compaction; 4 workers is the
+  sweet spot on this hardware (8 workers contend on one MariaDB).
+- **Phase 7 compatibility**: the `static $pipelineReady` gate is per-PHP-
+  process, so each worker starts fresh. In parallel mode each worker's
+  clone already has the `users` table, so the gate skips the pipeline and
+  the worker uses the pre-cloned, pre-populated DB; the hermeticity
+  cleanup runs per-method on the worker's own isolated clone. In serial
+  mode the gate runs the pipeline once and cleans up per-method as before.
+  Precondition: the template must be pre-built before `--parallel`.
+
+```bash
+php artisan tests:parallel-db                 # build/repair template, pre-clone workers
+php artisan tests:parallel-db --rebuild       # force fresh template from legacy pipeline
+php artisan tests:parallel-db --cleanup       # drop worker clones (keeps template)
+php artisan test --parallel                   # run suites in parallel (default 8 workers)
+php artisan test --parallel --processes=4    # 4-worker sweet spot
+```
 
 ## Next phases (per approved plan)
 
