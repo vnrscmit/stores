@@ -13,6 +13,7 @@ use App\Http\Controllers\Masters\ItemController;
 use App\Http\Controllers\Masters\PartyController;
 use App\Http\Controllers\Masters\SubBinController;
 use App\Http\Controllers\Masters\WarehouseController;
+use App\Http\Controllers\Viewer\BincardController;
 use App\Http\Controllers\Viewer\ReportController;
 use App\Support\IssueTypes;
 use Illuminate\Support\Facades\Route;
@@ -165,4 +166,7 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')
 
     Route::get('/stock-transfer', [ReportController::class, 'stockTransfer'])->name('stock-transfer');
     Route::get('/stock-transfer/export', [ReportController::class, 'stockTransferExport'])->name('stock-transfer.export');
+
+    Route::get('/bincard', [BincardController::class, 'index'])->name('bincard');
+    Route::get('/bincard/export', [BincardController::class, 'export'])->name('bincard.export');
 });

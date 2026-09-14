@@ -163,4 +163,48 @@ class StockLedgerService
             ? ['ups' => (int) $row->stlg_balups, 'qty' => (float) $row->stlg_balqty]
             : ['ups' => 0, 'qty' => 0.0];
     }
+
+    /**
+     * Movement ledger for an item at one location within a date range
+     * (bincard movement history). Returns rows ordered by date, newest
+     * first, with the legacy column shape: date, type, subtype, doc,
+     * trups, trqty, opups, opqty, balups, balqty.
+     *
+     * $asOf caps the rows to those on or before that date (the bincard
+     * prints the card "as of" a date); pass null to read all rows.
+     */
+    public static function ledgerForItemAt(
+        int $itemId, int $whid, int $binid, int $subbinid,
+        string $from, string $to, ?string $asOf = null,
+    ): array {
+        $q = StockLedgerGood::query()
+            ->where('stlg_tritemid', $itemId)
+            ->where('stlg_whid', $whid)
+            ->where('stlg_binid', $binid)
+            ->where('stlg_subbinid', $subbinid)
+            ->where('stlg_trdate', '>=', $from)
+            ->where('stlg_trdate', '<=', $to);
+
+        if ($asOf !== null) {
+            $q->where('stlg_trdate', '<=', $asOf);
+        }
+
+        return $q->orderByDesc('stlg_trdate')
+            ->orderByDesc('stlg_id')
+            ->get()
+            ->map(fn ($r) => [
+                'date' => (string) $r->stlg_trdate,
+                'type' => $r->stlg_trtype,
+                'subtype' => $r->stlg_trsubtype,
+                'doc' => $r->stlg_trid,
+                'trups' => (int) $r->stlg_trups,
+                'trqty' => (float) $r->stlg_trqty,
+                'opups' => (int) $r->stlg_opups,
+                'opqty' => (float) $r->stlg_opqty,
+                'balups' => (int) $r->stlg_balups,
+                'balqty' => (float) $r->stlg_balqty,
+            ])
+            ->values()
+            ->all();
+    }
 }
