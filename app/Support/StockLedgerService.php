@@ -165,6 +165,27 @@ class StockLedgerService
     }
 
     /**
+     * Damage-ledger balance as-of date at an item x location (Stock On Hand
+     * (Damage) reader). The damage ledger uses the stld_* prefix; column
+     * semantics are identical to the good ledger.
+     */
+    public static function damageBalanceAt(int $itemId, int $whid, int $binid, int $subbinid, string $asOf): array
+    {
+        $row = StockLedgerDamage::query()
+            ->where('stld_tritemid', $itemId)
+            ->where('stld_whid', $whid)
+            ->where('stld_binid', $binid)
+            ->where('stld_subbinid', $subbinid)
+            ->where('stld_trdate', '<=', $asOf)
+            ->orderByDesc('stld_id')
+            ->first();
+
+        return $row
+            ? ['ups' => (int) $row->stld_balups, 'qty' => (float) $row->stld_balqty]
+            : ['ups' => 0, 'qty' => 0.0];
+    }
+
+    /**
      * Movement ledger for an item at one location within a date range
      * (bincard movement history). Returns rows ordered by date, newest
      * first, with the legacy column shape: date, type, subtype, doc,

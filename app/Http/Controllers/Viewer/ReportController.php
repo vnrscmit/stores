@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Viewer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Viewer\ConsumptionRequest;
 use App\Http\Requests\Viewer\LedgerRequest;
+use App\Http\Requests\Viewer\StockOnHandDamageRequest;
 use App\Http\Requests\Viewer\StockOnHandRequest;
 use App\Models\Bin;
 use App\Models\Item;
+use App\Models\StockLedgerDamage;
 use App\Models\StockLedgerGood;
 use App\Models\SubBin;
 use App\Models\Warehouse;
@@ -480,5 +482,98 @@ class ReportController extends Controller
         }
 
         return $date;
+    }
+
+    public function stockOnHandDamage(StockOnHandDamageRequest $request): View
+    {
+        $asOf = $request->asOf();
+        $classificationId = $request->classificationId();
+
+        $rows = $this->stockOnHandDamageRows($asOf, $classificationId);
+
+        return view('viewer.reports.stock-on-hand-damage', [
+            'rows' => $rows,
+            'asOf' => $asOf,
+            'classificationId' => $classificationId,
+        ]);
+    }
+
+    public function stockOnHandDamageExport(StockOnHandDamageRequest $request): StreamedResponse|BinaryFileResponse
+    {
+        $asOf = $request->asOf();
+        $classificationId = $request->classificationId();
+
+        return Excel::stream(
+            'stock-on-hand-damage-'.$asOf.'.xlsx',
+            ['Classification', 'Item', 'UoM', 'Warehouse', 'Bin', 'Sub-bin', 'UPS', 'Qty'],
+            $this->stockOnHandDamageRows($asOf, $classificationId, forExport: true)
+        );
+    }
+
+    private function stockOnHandDamageRows(string $asOf, ?int $classificationId, bool $forExport = false): array
+    {
+        // Legacy parity (damage twin of report_stockhand.php):
+        //   1. DISTINCT items touched in the damage ledger up to as-of.
+        //   2. Per item: DISTINCT locations with damage activity up to as-of.
+        //   3. Per item x location: balance of the MAX(stld_id) row <= as-of
+        //      where stld_balqty > 0.
+        $itemsQuery = StockLedgerDamage::query()
+            ->select('stld_tritemid', 'stld_trclassid')
+            ->where('stld_trdate', '<=', $asOf)
+            ->when($classificationId, fn ($q, $c) => $q->where('stld_trclassid', $c))
+            ->distinct();
+
+        $rows = [];
+        $items = $itemsQuery->orderBy('stld_tritemid')->get();
+
+        foreach ($items as $item) {
+            $itemRow = Item::with('classification')
+                ->where('items_id', $item->stld_tritemid)
+                ->where('actstatus', 'Active')
+                ->first();
+
+            if ($itemRow === null) {
+                continue;
+            }
+
+            $locations = StockLedgerDamage::query()
+                ->select('stld_whid', 'stld_binid', 'stld_subbinid')
+                ->where('stld_trclassid', $item->stld_trclassid)
+                ->where('stld_tritemid', $item->stld_tritemid)
+                ->where('stld_trdate', '<=', $asOf)
+                ->distinct()
+                ->get();
+
+            foreach ($locations as $loc) {
+                $balance = StockLedgerService::damageBalanceAt(
+                    (int) $item->stld_tritemid,
+                    (int) $loc->stld_whid,
+                    (int) $loc->stld_binid,
+                    (int) $loc->stld_subbinid,
+                    $asOf
+                );
+
+                if ($balance['qty'] <= 0) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'classification' => $itemRow->classification->classification ?? '',
+                    'item' => $itemRow->stores_item,
+                    'uom' => $itemRow->uom,
+                    'warehouse' => Warehouse::find($loc->stld_whid)?->perticulars ?? '',
+                    'bin' => Bin::find($loc->stld_binid)?->binname ?? '',
+                    'subbin' => SubBin::find($loc->stld_subbinid)?->sname ?? '',
+                    'ups' => $balance['ups'],
+                    'qty' => $balance['qty'],
+                ];
+
+                if (! $forExport && count($rows) >= 500) {
+                    return $rows;
+                }
+            }
+        }
+
+        return $rows;
     }
 }
