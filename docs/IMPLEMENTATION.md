@@ -16,11 +16,11 @@ checkout (only composer.json/artisan/vendor survived).
 | `legacy:stage-import` → `legacy:migrate-data` → `legacy:integrity-fix` → `legacy:add-constraints` → `legacy:verify` | ✅ run against live `stores` — all 49 tables PASS row parity, 18 FKs live |
 | `phase1:smoke` acceptance command | ✅ |
 | Auth slice: consolidated users, login (gradual hash migration), Q&A reset, role middleware, Gates, FY contract | ✅ |
-| Viewer reports: Stock On Hand, Stores Item Ledger, Stock Transfer + XLSX | ✅ |
+| Viewer reports: all nine ported (Phase 3 trio + Phase 8 six, see below) | ✅ |
 | Masters CRUD (warehouse, bin, sub-bin, classification, item, party) + audit logging | ✅ |
 | e-Indent raise module: draft workspace, numbering, submit, approval gate, audit | ✅ |
 | Issue-against-e-Indent: pending queue, SLOC distribution workspace, StockLedgerService posting, indent closing | ✅ |
-| Feature suites: Phase1PipelineTest, Phase2AuthTest, Phase3ViewerReportsTest, Phase4MastersTest, Phase5EIndentTest, Phase6IssueTest, Phase7MovementTypesTest | ✅ **65 passed / 361 assertions** on the migrated data; Pint clean; serial and parallel (4/8 workers) green |
+| Feature suites: Phase1PipelineTest, Phase2AuthTest, Phase3ViewerReportsTest, Phase4MastersTest, Phase5EIndentTest, Phase6IssueTest, Phase7MovementTypesTest + six Phase 8 report suites | ✅ **110 passed / 1 skipped, 2,544 assertions**; Pint clean; serial green (parallel infra unchanged) |
 
 ## Pipeline commands
 
@@ -202,6 +202,38 @@ getuser_capetdupdate.php / add_cc_preview.php (tbl_captive + tbl_captivesub
   `issue.mrtv`, `cc.consumption`). One availability endpoint
   (IssueAvailabilityController) serves all four entry screens.
 
+## Viewer reports complete (Phase 8 slices)
+
+The viewer reports catalogue (`viewer/reports`) is fully live — every entry
+in the legacy reports1/viwerreports.php menu is ported, routed under
+`auth, fy, role:viewer,admin`, and covered by a hermetic suite. Each port
+follows one pattern: a private rows-reader on ReportController (or
+BincardController) mirroring the legacy query, a Blade view, an Excel::stream
+XLSX export with the legacy filename pattern, and a Phase 8 feature suite
+that runs the legacy pipeline once and derives its data window from the
+staged rows (the dataset is historical).
+
+Ported in commit order, with sources:
+
+| Report | Legacy sources | Notes |
+|---|---|---|
+| Sub-Bin Card (bincard) | report_bin.php + bincard + word_bin | `StockLedgerService::ledgerForItemAt` reader; per-item movement ledger inside the card |
+| Consumption (item-wise) | consumption_report(1|2).php | Issue minus internal-return per date row, SUO excluded |
+| Stock On Hand (Damage) | damage twin of report_stockhand.php | `damageBalanceAt` over `stock_ledger_damages`, latest-row-per-location balance |
+| Discard | discardreport.php + report_discard.php + excel-discard.php | Damage-ledger `Discard`/`MD` rows, newest first, particulars from the discard document |
+| Reorder Level | reorderlevelreport.php + report_reorder.php | `srl_status='Yes'` items with summed latest-row balance ≤ `srl`; R / "OR - date" remarks; no filters (legacy had none) |
+| Party-wise Period | partywiseperiodreport2.php + excel-partywise.php | `party_ledgers` rows with the legacy particulars mapping and Opening/DC/Good/Arrival-Damage/Internal-Damage/Excess/Shortage/Issue/Balance split |
+
+Deliberate deviations vs legacy (documented in code):
+- Party-wise: the legacy "Net" column was blank (uninitialized `$slups/$slqty`
+  leftover); the port computes it as receive − issue. A period-totals block
+  (summed DC/good/damage/excess/shortage + closing balance) was added.
+- Reorder: the legacy page's remarks read the last location's row while the
+  totals loop ran over all locations; the port takes the order flags from the
+  item's globally latest ledger row (deterministic superset of the intent).
+- Catalogue flags: damage/consumption/discard/partywise/reorder cards were
+  still marked "phase 11"; all flipped live.
+
 ## Test infrastructure: parallel execution with per-worker database clones
 
 ParaTest (v7.4.9) splits test methods across worker processes; every suite
@@ -243,7 +275,16 @@ php artisan test --parallel --processes=4    # 4-worker sweet spot
 
 ## Next phases (per approved plan)
 
-Issue-against-e-Indent (done) and movement types pindent/stocktr/MRTV/CC
-(done) → bincard → remaining reports → arrivals family (vendor GRN, stock
-transfer in, internal) → discard/excess-shortage/gate movements →
-QR/backup/audit screens → UI unify → performance → cutover docs.
+Viewer reports — done (all nine: stock-on-hand good + damage, item ledger,
+stock transfer, bincard, consumption, discard, reorder, party-wise) →
+arrivals family (vendor GRN, stock transfer in, internal return) →
+discard/excess-shortage/gate movements → QR/backup/audit screens →
+UI unify → performance → cutover docs.
+
+The next phase is the **arrivals family**: goods receipts against vendors
+(tblarrival + tblarrival_sub + tblarr_sloc → arrivals / arrival_items /
+arrival_slocs, `Arrival`/`Vendor` ledger rows), stock-transfer-in
+(`IT`/`ITI`/`ITA`) and internal returns, following the Phase 6/7 workspace
+pattern — header on first line, AJAX line workspace, transactional
+StockLedgerService::post, per-type document counters, audit rows, and a
+hermetic Phase 9 suite.
