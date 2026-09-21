@@ -181,4 +181,7 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')
 
     Route::get('/reorder', [ReportController::class, 'reorder'])->name('reorder');
     Route::get('/reorder/export', [ReportController::class, 'reorderExport'])->name('reorder.export');
+
+    Route::get('/partywise', [ReportController::class, 'partywise'])->name('partywise');
+    Route::get('/partywise/export', [ReportController::class, 'partywiseExport'])->name('partywise.export');
 });

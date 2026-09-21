@@ -11,6 +11,8 @@ use App\Models\Bin;
 use App\Models\Classification;
 use App\Models\Discard;
 use App\Models\Item;
+use App\Models\Party;
+use App\Models\PartyLedger;
 use App\Models\StockLedgerDamage;
 use App\Models\StockLedgerGood;
 use App\Models\SubBin;
@@ -44,7 +46,7 @@ class ReportController extends Controller
             ['code' => 'stock-on-hand-damage', 'label' => 'Stock On Hand (Damage)', 'live' => true],
             ['code' => 'consumption', 'label' => 'Consumption (Item-wise)', 'live' => true],
             ['code' => 'discard', 'label' => 'Discard Report', 'live' => true],
-            ['code' => 'partywise', 'label' => 'Party-wise Period', 'live' => false],
+            ['code' => 'partywise', 'label' => 'Party-wise Period', 'live' => true],
             ['code' => 'reorder', 'label' => 'Reorder Level', 'live' => true],
         ];
 
@@ -772,5 +774,177 @@ class ReportController extends Controller
         }
 
         return $rows;
+    }
+
+    // Party-wise Period -----------------------------------------------------------
+    // Legacy: reports/partywiseperiodreport.php + partywiseperiodreport1/2.php + excel-partywise.php.
+
+    public function partywise(LedgerRequest $request): View
+    {
+        [$from, $to, $classificationId, $itemId] = $request->filters();
+        $partyId = (int) $request->query('party_id', 0);
+
+        return view('viewer.reports.partywise', [
+            'rows' => $this->partywiseRows($from, $to, $partyId, $classificationId, $itemId),
+            'totals' => $this->partywiseTotals($from, $to, $partyId, $classificationId, $itemId),
+            'from' => $from,
+            'to' => $to,
+            'partyId' => $partyId,
+            'partyName' => $partyId > 0
+                ? (Party::find($partyId)?->business_name ?? 'ALL')
+                : 'ALL',
+            'classificationId' => $classificationId,
+            'itemId' => $itemId,
+        ]);
+    }
+
+    public function partywiseExport(LedgerRequest $request): StreamedResponse|BinaryFileResponse
+    {
+        [$from, $to, $classificationId, $itemId] = $request->filters();
+        $partyId = (int) $request->query('party_id', 0);
+        $partyName = $partyId > 0
+            ? (Party::find($partyId)?->business_name ?? 'all')
+            : 'all';
+
+        return Excel::stream(
+            'Party_wise_Stock_Report_'.$partyName.'_From_'.$from.'_To_'.$to.'.xlsx',
+            [
+                'Date', 'Particulars',
+                'Opening UPS', 'Opening Qty',
+                'DC UPS', 'DC Qty',
+                'Good UPS', 'Good Qty',
+                'Arrival Damage UPS', 'Arrival Damage Qty',
+                'Internal Damage UPS', 'Internal Damage Qty',
+                'Excess', 'Shortage',
+                'Net UPS', 'Net Qty',
+                'Issue UPS', 'Issue Qty',
+                'Balance UPS', 'Balance Qty',
+            ],
+            $this->partywiseRows($from, $to, $partyId, $classificationId, $itemId, forExport: true)
+        );
+    }
+
+    private function partywiseRows(
+        string $from,
+        string $to,
+        int $partyId,
+        ?int $classificationId,
+        ?int $itemId,
+        bool $forExport = false,
+    ): array {
+        // Legacy parity (partywiseperiodreport2.php + excel-partywise.php):
+        // party-ledger rows in the period ordered by date, with particulars
+        // derived from type/subtype and the DC/good/damage/excess/shortage
+        // column split. The legacy "Net" column was left blank (an
+        // uninitialized leftover); the port computes it as receive - issue.
+        $q = PartyLedger::query()
+            ->whereBetween('pldg_trdate', [$from, $to])
+            ->when($partyId > 0, fn ($q) => $q->where('pldg_trpartyid', $partyId))
+            ->when($classificationId, fn ($q, $c) => $q->where('pldg_trclassid', $c))
+            ->when($itemId, fn ($q, $i) => $q->where('pldg_tritemid', $i))
+            ->orderBy('pldg_trdate');
+
+        $rows = [];
+
+        foreach ($q->get() as $r) {
+            $type = (string) $r->pldg_trtype;
+            $subtype = (string) $r->pldg_trsubtype;
+
+            $opening = [0, 0.0];
+            $rec = [0, 0.0];
+            $iss = [0, 0.0];
+            $internalDamage = [0, 0.0];
+            $particulars = trim($type.' '.($subtype !== '' ? '('.$subtype.')' : ''));
+
+            if ($type === 'Arrival' && $subtype === 'Vendor') {
+                $particulars = 'Arrival from Party';
+                $rec = [(int) $r->pldg_trdcups, (float) $r->pldg_trdcqty];
+            } elseif ($type === 'Issue' && $subtype === 'MReturnV') {
+                $particulars = 'Material Return to Party';
+                $iss = [(int) $r->pldg_trdcups, (float) $r->pldg_trdcqty];
+            } elseif ($type === 'OP') {
+                $particulars = 'Opening Stock';
+                $opening = [(int) $r->pldg_trdcups, (float) $r->pldg_trdcqty];
+            } elseif ($type === 'GD') {
+                $particulars = 'Good to Damage - Party';
+                $internalDamage = [(int) $r->pldg_trdamageups, (float) $r->pldg_trdamageqty];
+            }
+
+            $arrivalDamage = $type === 'GD'
+                ? [0, 0.0]
+                : [(int) $r->pldg_trdamageups, (float) $r->pldg_trdamageqty];
+
+            $rows[] = [
+                'date' => (string) $r->pldg_trdate,
+                'particulars' => $particulars,
+                'classification' => Classification::find($r->pldg_trclassid)?->classification ?? '',
+                'item' => Item::find($r->pldg_tritemid)?->stores_item ?? '',
+                'opening_ups' => $opening[0],
+                'opening_qty' => $opening[1],
+                'dc_ups' => $rec[0],
+                'dc_qty' => $rec[1],
+                'good_ups' => (int) $r->pldg_trgoodups,
+                'good_qty' => (float) $r->pldg_trgoodqty,
+                'arrival_damage_ups' => $arrivalDamage[0],
+                'arrival_damage_qty' => $arrivalDamage[1],
+                'internal_damage_ups' => $internalDamage[0],
+                'internal_damage_qty' => $internalDamage[1],
+                'excess' => (float) $r->pldg_trexqty,
+                'shortage' => (float) $r->pldg_trshqty,
+                'net_ups' => $rec[0] - $iss[0],
+                'net_qty' => $rec[1] - $iss[1],
+                'issue_ups' => $iss[0],
+                'issue_qty' => $iss[1],
+                'balance_ups' => (int) $r->pldg_trbalups,
+                'balance_qty' => (float) $r->pldg_trbalqty,
+            ];
+
+            if (! $forExport && count($rows) >= 500) {
+                break;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Period totals across the filtered party-ledger rows, with the closing
+     * balance taken from the last row in the period (the legacy report
+     * ends each item block at its final balance row).
+     */
+    private function partywiseTotals(
+        string $from,
+        string $to,
+        int $partyId,
+        ?int $classificationId,
+        ?int $itemId,
+    ): array {
+        $base = fn () => PartyLedger::query()
+            ->whereBetween('pldg_trdate', [$from, $to])
+            ->when($partyId > 0, fn ($q) => $q->where('pldg_trpartyid', $partyId))
+            ->when($classificationId, fn ($q, $c) => $q->where('pldg_trclassid', $c))
+            ->when($itemId, fn ($q, $i) => $q->where('pldg_tritemid', $i));
+
+        $sums = (clone $base)()->selectRaw(
+            'SUM(pldg_trdcups) AS dc_ups, SUM(pldg_trdcqty) AS dc_qty,'.
+            'SUM(pldg_trgoodups) AS good_ups, SUM(pldg_trgoodqty) AS good_qty,'.
+            'SUM(pldg_trdamageups) AS damage_ups, SUM(pldg_trdamageqty) AS damage_qty,'.
+            'SUM(pldg_trexqty) AS excess, SUM(pldg_trshqty) AS shortage'
+        )->first();
+
+        $last = (clone $base)()->orderByDesc('pldg_trdate')->orderByDesc('pldg_id')->first();
+
+        return [
+            'dc_ups' => (int) $sums->dc_ups,
+            'dc_qty' => (float) $sums->dc_qty,
+            'good_ups' => (int) $sums->good_ups,
+            'good_qty' => (float) $sums->good_qty,
+            'damage_ups' => (int) $sums->damage_ups,
+            'damage_qty' => (float) $sums->damage_qty,
+            'excess' => (float) $sums->excess,
+            'shortage' => (float) $sums->shortage,
+            'closing_ups' => (int) ($last?->pldg_trbalups ?? 0),
+            'closing_qty' => (float) ($last?->pldg_trbalqty ?? 0.0),
+        ];
     }
 }
