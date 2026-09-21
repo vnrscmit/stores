@@ -8,6 +8,8 @@ use App\Http\Requests\Viewer\LedgerRequest;
 use App\Http\Requests\Viewer\StockOnHandDamageRequest;
 use App\Http\Requests\Viewer\StockOnHandRequest;
 use App\Models\Bin;
+use App\Models\Classification;
+use App\Models\Discard;
 use App\Models\Item;
 use App\Models\StockLedgerDamage;
 use App\Models\StockLedgerGood;
@@ -37,9 +39,9 @@ class ReportController extends Controller
             ['code' => 'item-ledger', 'label' => 'Stores Item Ledger', 'live' => true],
             ['code' => 'stock-transfer', 'label' => 'Stock Transfer (Party-wise)', 'live' => true],
             ['code' => 'bincard', 'label' => 'Sub-Bin Card', 'live' => true],
-            ['code' => 'stock-on-hand-damage', 'label' => 'Stock On Hand (Damage)', 'live' => false],
-            ['code' => 'consumption', 'label' => 'Consumption (Item-wise)', 'live' => false],
-            ['code' => 'discard', 'label' => 'Discard Report', 'live' => false],
+            ['code' => 'stock-on-hand-damage', 'label' => 'Stock On Hand (Damage)', 'live' => true],
+            ['code' => 'consumption', 'label' => 'Consumption (Item-wise)', 'live' => true],
+            ['code' => 'discard', 'label' => 'Discard Report', 'live' => true],
             ['code' => 'partywise', 'label' => 'Party-wise Period', 'live' => false],
             ['code' => 'reorder', 'label' => 'Reorder Level', 'live' => false],
         ];
@@ -571,6 +573,75 @@ class ReportController extends Controller
                 if (! $forExport && count($rows) >= 500) {
                     return $rows;
                 }
+            }
+        }
+
+        return $rows;
+    }
+
+    // Discard ---------------------------------------------------------------------
+    // Legacy: reports/discardreport.php + report_discard.php + excel-discard.php.
+
+    public function discard(LedgerRequest $request): View
+    {
+        [$from, $to, $classificationId, $itemId] = $request->filters();
+
+        return view('viewer.reports.discard', [
+            'rows' => $this->discardRows($from, $to, $classificationId, $itemId),
+            'from' => $from,
+            'to' => $to,
+            'classificationId' => $classificationId,
+            'itemId' => $itemId,
+            'classificationLabel' => $classificationId
+                ? (Classification::find($classificationId)?->classification ?? 'ALL')
+                : 'ALL',
+        ]);
+    }
+
+    public function discardExport(LedgerRequest $request): StreamedResponse|BinaryFileResponse
+    {
+        [$from, $to, $classificationId, $itemId] = $request->filters();
+
+        return Excel::stream(
+            'Discard_Report_From_'.$from.'_To_'.$to.'.xlsx',
+            ['Date', 'Perticulars', 'Classification', 'Item', 'UPS', 'Quantity'],
+            $this->discardRows($from, $to, $classificationId, $itemId, forExport: true)
+        );
+    }
+
+    private function discardRows(string $from, string $to, ?int $classificationId, ?int $itemId, bool $forExport = false): array
+    {
+        // Legacy parity (report_discard.php): Discard (MD) rows from the damage
+        // ledger within the period, newest first, optionally scoped to one
+        // classification or item. Particulars come from the discard document
+        // matching the ledger row id.
+        $q = StockLedgerDamage::query()
+            ->whereBetween('stld_trdate', [$from, $to])
+            ->where('stld_trtype', 'Discard')
+            ->where('stld_trsubtype', 'MD')
+            ->when($classificationId, fn ($q, $c) => $q->where('stld_trclassid', $c))
+            ->when($itemId, fn ($q, $i) => $q->where('stld_tritemid', $i))
+            ->orderByDesc('stld_trdate');
+
+        $rows = [];
+        foreach ($q->get() as $r) {
+            $item = Item::find($r->stld_tritemid);
+            $inactive = $item !== null && $item->actstatus === 'In-Active';
+            $itemName = $item?->stores_item ?? '';
+
+            $row = [
+                'date' => (string) $r->stld_trdate,
+                'particulars' => Discard::where('tid', (int) $r->stld_trid)->value('party_name') ?? '',
+                'classification' => Classification::find($r->stld_trclassid)?->classification ?? '',
+                'item' => $forExport && $inactive ? $itemName.' - In-Active' : $itemName,
+                'inactive' => $inactive,
+                'ups' => (int) $r->stld_trups,
+                'qty' => (float) $r->stld_trqty,
+            ];
+            $rows[] = $row;
+
+            if (! $forExport && count($rows) >= 500) {
+                break;
             }
         }
 

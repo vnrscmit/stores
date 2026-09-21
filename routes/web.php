@@ -175,4 +175,7 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')
 
     Route::get('/stock-on-hand-damage', [ReportController::class, 'stockOnHandDamage'])->name('stock-on-hand-damage');
     Route::get('/stock-on-hand-damage/export', [ReportController::class, 'stockOnHandDamageExport'])->name('stock-on-hand-damage.export');
+
+    Route::get('/discard', [ReportController::class, 'discard'])->name('discard');
+    Route::get('/discard/export', [ReportController::class, 'discardExport'])->name('discard.export');
 });
