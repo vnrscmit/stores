@@ -314,6 +314,7 @@ class LegacyMigrateData extends Command
             ['issue.stocktr', 'issues', 'yearcode', 'iss_code', "issue_type = 'stocktr'"],
             ['arrival.vendor', 'arrivals', 'yearcode', 'arr_code', "arrival_type = 'vendor'"],
             ['arrival.stocktr', 'arrivals', 'yearcode', 'arr_code', "arrival_type = 'stocktransfer'"],
+            ['arrival.internal', 'arrivals', 'yearcode', 'arr_code', "arrival_type = 'Internalreturn'"],
             ['captive.vendor', 'captives', 'yearcode', 'cc_code', null],
             ['discard', 'discards', 'yearcode', 'dd_code', null],
             ['excess', 'excesses', 'yearcode', 'escode', null],
