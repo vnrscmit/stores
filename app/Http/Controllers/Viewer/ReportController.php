@@ -17,6 +17,8 @@ use App\Models\SubBin;
 use App\Models\Warehouse;
 use App\Support\Excel;
 use App\Support\StockLedgerService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -43,7 +45,7 @@ class ReportController extends Controller
             ['code' => 'consumption', 'label' => 'Consumption (Item-wise)', 'live' => true],
             ['code' => 'discard', 'label' => 'Discard Report', 'live' => true],
             ['code' => 'partywise', 'label' => 'Party-wise Period', 'live' => false],
-            ['code' => 'reorder', 'label' => 'Reorder Level', 'live' => false],
+            ['code' => 'reorder', 'label' => 'Reorder Level', 'live' => true],
         ];
 
         return view('viewer.reports.index', ['reports' => $reports]);
@@ -642,6 +644,130 @@ class ReportController extends Controller
 
             if (! $forExport && count($rows) >= 500) {
                 break;
+            }
+        }
+
+        return $rows;
+    }
+
+    // Reorder Level ---------------------------------------------------------------
+    // Legacy: reports/reorderlevelreport.php + report_reorder.php.
+
+    public function reorder(Request $request): View
+    {
+        return view('viewer.reports.reorder', [
+            'rows' => $this->reorderRows(),
+            'asOf' => Date::today()->toDateString(),
+        ]);
+    }
+
+    public function reorderExport(Request $request): StreamedResponse|BinaryFileResponse
+    {
+        return Excel::stream(
+            'reorder-level-'.Date::today()->toDateString().'.xlsx',
+            ['#', 'Classification', 'Item', 'UoM', 'Reorder Level', 'UPS', 'Quantity', 'Remarks'],
+            $this->reorderRows(forExport: true)
+        );
+    }
+
+    private function reorderRows(bool $forExport = false): array
+    {
+        // Legacy parity (report_reorder.php):
+        //   1. Items flagged srl_status = 'Yes' (reorder-tracked); srl holds
+        //      the reorder level.
+        //   2. Per item: DISTINCT good-ledger locations with activity.
+        //   3. Per location: balance of the latest ledger row (MAX(stlg_id));
+        //      summed across locations.
+        //   4. Normalisation: qty > 0 && ups == 0 -> ups = 1;
+        //      qty == 0 && ups > 0 -> ups = 0; qty < 0 -> 0.
+        //   5. The item is listed when total qty <= its reorder level.
+        //   6. Remarks: 'OR - {ordate}' when the last location's row is marked
+        //      order-placed, otherwise 'R'.
+        $items = Item::query()
+            ->where('srl_status', 'Yes')
+            ->whereNotNull('srl')
+            ->orderBy('classification_id')
+            ->orderBy('items_id')
+            ->get();
+
+        $asOf = Date::today()->toDateString();
+
+        $rows = [];
+        $srno = 1;
+
+        foreach ($items as $itemRow) {
+            $totups = 0;
+            $totqty = 0.0;
+            $orstatus = '';
+            $ordate = '';
+
+            $locations = StockLedgerGood::query()
+                ->select('stlg_whid', 'stlg_binid', 'stlg_subbinid')
+                ->where('stlg_trclassid', $itemRow->classification_id)
+                ->where('stlg_tritemid', $itemRow->items_id)
+                ->distinct()
+                ->get();
+
+            foreach ($locations as $loc) {
+                $balance = StockLedgerService::balanceAt(
+                    (int) $itemRow->items_id,
+                    (int) $loc->stlg_whid,
+                    (int) $loc->stlg_binid,
+                    (int) $loc->stlg_subbinid,
+                    $asOf
+                );
+
+                $totups += $balance['ups'];
+                $totqty += $balance['qty'];
+            }
+
+            // Latest row for the item carries the order-placed remark flags.
+            $latest = StockLedgerGood::query()
+                ->where('stlg_trclassid', $itemRow->classification_id)
+                ->where('stlg_tritemid', $itemRow->items_id)
+                ->orderByDesc('stlg_id')
+                ->first(['orstatus', 'ordate']);
+
+            if ($latest !== null) {
+                $orstatus = (string) $latest->orstatus;
+                $ordate = (string) $latest->ordate;
+            }
+
+            if ($totqty < 0) {
+                $totqty = 0.0;
+            }
+            if ($totups <= 0 && $totqty > 0) {
+                $totups = 1;
+            }
+            if ($totups > 0 && $totqty == 0) {
+                $totups = 0;
+            }
+
+            $reorderLevel = (float) $itemRow->srl;
+
+            if ($totqty > $reorderLevel) {
+                continue; // legacy: only items at/below the reorder level
+            }
+
+            $inactive = $itemRow->actstatus === 'In-Active';
+            $itemName = (string) $itemRow->stores_item;
+
+            $rows[] = [
+                'srno' => $srno++,
+                'classification' => $itemRow->classification->classification ?? '',
+                'item' => $forExport && $inactive ? $itemName.' - In-Active' : $itemName,
+                'inactive' => $inactive,
+                'uom' => $itemRow->uom,
+                'reorder_level' => $reorderLevel,
+                'ups' => $totups,
+                'qty' => $totqty,
+                'remarks' => $orstatus === 'OR' && $ordate !== ''
+                    ? 'OR - '.Date::parse($ordate)->format('d-m-Y')
+                    : 'R',
+            ];
+
+            if (! $forExport && count($rows) >= 500) {
+                return $rows; // on-screen cap; exports stream everything
             }
         }
 

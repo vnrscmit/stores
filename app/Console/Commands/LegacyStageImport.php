@@ -158,7 +158,7 @@ class LegacyStageImport extends Command
             $count += $this->bulkInsert($staging, $rows);
         }
 
-        $this->line("  ~ {$legacyTable}: capped subset ({$limit} of ".number_format((int) $conn->table($legacyTable)->count())." rows)");
+        $this->line("  ~ {$legacyTable}: capped subset ({$limit} of ".number_format((int) $conn->table($legacyTable)->count()).' rows)');
 
         // Children referencing this header, in map order. The relation map
         // speaks in FINAL table names; resolve both sides back to the legacy

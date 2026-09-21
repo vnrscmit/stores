@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Console\Commands\LegacyStageImport;
 use App\Models\Item;
-use App\Models\StockLedgerGood;
 use App\Models\User;
 use App\Support\FiscalYear as FiscalYearContract;
 use Illuminate\Support\Facades\DB;
@@ -179,5 +178,4 @@ class Phase8ConsumptionTest extends TestCase
                 ->update(['years_flg' => 1, 'years_status' => 'a']);
         }
     }
-
 }

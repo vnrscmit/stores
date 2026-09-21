@@ -178,4 +178,7 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')
 
     Route::get('/discard', [ReportController::class, 'discard'])->name('discard');
     Route::get('/discard/export', [ReportController::class, 'discardExport'])->name('discard.export');
+
+    Route::get('/reorder', [ReportController::class, 'reorder'])->name('reorder');
+    Route::get('/reorder/export', [ReportController::class, 'reorderExport'])->name('reorder.export');
 });
