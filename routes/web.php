@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
+use App\Http\Controllers\Arrival\ArrivalController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
@@ -152,6 +154,22 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('issues/cc')-
     Route::put('/workspace/{captive}/header', [CaptiveController::class, 'updateHeader'])->whereNumber('captive')->name('header.update');
     Route::post('/workspace/{captive}/post', [CaptiveController::class, 'post'])->whereNumber('captive')->name('post');
     Route::get('/print/{captive}', [CaptiveController::class, 'show'])->whereNumber('captive')->name('show');
+});
+
+// Arrivals family (Phase 9 slice 2): vendor GRN. Legacy: add_arrival_vendor.php
+// + getuser_vupdateform.php + add_arrival_vendor_preview.php.
+Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('arrivals/vendor')->name('arrivals.vendor.')->group(function () {
+    Route::get('/', [ArrivalController::class, 'index'])->name('index')->defaults('type', 'vendor');
+    Route::get('/new', [ArrivalController::class, 'create'])->name('create')->defaults('type', 'vendor');
+    Route::get('/availability/{classification}/{item}', [ArrivalAvailabilityController::class, 'availability'])
+        ->whereNumber(['classification', 'item'])->name('availability');
+    Route::post('/lines', [ArrivalController::class, 'storeLine'])->name('lines.store')->defaults('type', 'vendor');
+    Route::put('/lines/{line}/update', [ArrivalController::class, 'updateLine'])->whereNumber('line')->name('lines.update');
+    Route::delete('/lines/{line}', [ArrivalController::class, 'deleteLine'])->whereNumber('line')->name('lines.delete');
+    Route::get('/workspace/{arrival}', [ArrivalController::class, 'workspace'])->whereNumber('arrival')->name('workspace');
+    Route::put('/workspace/{arrival}/header', [ArrivalController::class, 'updateHeader'])->whereNumber('arrival')->name('header.update');
+    Route::post('/workspace/{arrival}/post', [ArrivalController::class, 'post'])->whereNumber('arrival')->name('post');
+    Route::get('/print/{arrival}', [ArrivalController::class, 'show'])->whereNumber('arrival')->name('show');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

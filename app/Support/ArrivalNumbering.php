@@ -96,6 +96,37 @@ class ArrivalNumbering
         return DocumentNumber::next('iitr', $yearcode);
     }
 
+    /**
+     * Next entry-time workspace id (legacy MAX(arrival_code)+1 per yearcode x
+     * arrival_type, stamped on the header when the first line is saved).
+     * Called inside the caller's transaction; lockForUpdate on the matching
+     * rows prevents two workspaces from taking the same id.
+     */
+    public static function nextWorkspaceCode(string $yearcode, string $type): int
+    {
+        $max = Arrival::query()
+            ->where('arrival_type', self::arrivalType($type))
+            ->where('yearcode', $yearcode)
+            ->lockForUpdate()
+            ->max('arrival_code');
+
+        return (int) $max + 1;
+    }
+
+    /**
+     * Legacy transaction-id text for a header: TAV{arrival_code}/{yearcode}/{role}
+     * while open, TAV{arr_code}/{yearcode}/{role} once posted (legacy preview
+     * screen swaps the serial at commit).
+     */
+    public static function transactionId(Arrival $arrival, string $type): string
+    {
+        $code = ((int) $arrival->arrtrflag === 1 && $arrival->arr_code !== null)
+            ? $arrival->arr_code
+            : $arrival->arrival_code;
+
+        return DocumentNumber::pretty(self::counter($type), (int) $code, (string) $arrival->yearcode);
+    }
+
     /** Legacy committed display, e.g. TAV12/20222023. */
     public static function committedId(string $type, int $code, string $yearcode): string
     {

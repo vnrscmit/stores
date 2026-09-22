@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Issue;
+namespace App\Http\Controllers\Arrival;
 
 use App\Http\Controllers\Controller;
 use App\Models\StockLedgerGood;
@@ -8,12 +8,13 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 
 /**
- * GET availability rows for a classification + item, shared by all four
- * movement-type entry screens (legacy getuser_issue_pindent_slocshow.php /
- * getuser_issue_str_etdrec.php / slocshowmrv family): latest positive
- * balance per SLOC for the item, so the distribution form can render.
+ * GET reference availability for a classification + item (legacy
+ * getuser_arrv_sbinckv.php + the sloc-show panes): the latest balance per
+ * SLOC for the item, shown while distributing a receipt. Receiving does not
+ * draw down stock, so these rows are display references only — the
+ * selected row id rides along as arrival_slocs.rowid (legacy parity).
  */
-class IssueAvailabilityController extends Controller
+class ArrivalAvailabilityController extends Controller
 {
     use AuthorizesRequests;
 
@@ -46,7 +47,6 @@ class IssueAvailabilityController extends Controller
                     'qty' => (float) ($latest->stlg_balqty ?? 0),
                 ];
             })
-            ->filter(fn ($l) => $l['qty'] > 0 || $l['ups'] > 0)
             ->values();
 
         return response()->json(['ok' => true, 'availability' => $locations]);
