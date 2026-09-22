@@ -578,20 +578,31 @@ class ArrivalController extends Controller
      */
     private function saveLine(Arrival $arrival, array $data, ?ArrivalItem $line = null): ArrivalItem
     {
+        $type = $this->typeOf($arrival);
         $isNew = $line === null;
         $line ??= new ArrivalItem(['arrival_id' => $arrival->arrival_id]);
 
         // Excess/shortage, verbatim legacy math from the posting preview
         // (ex floored at 0; sh floored at 0 from above, i.e. stored <= 0).
-        $exQty = max(0, $data['qty_good'] + $data['qty_damage'] - $data['qty_per_dc']);
-        $exUps = max(0, $data['ups_good'] + $data['ups_damage'] - $data['ups_per_dc']);
-        $shQty = $data['qty_per_dc'] - $data['qty_good'] + $data['qty_damage'];
-        if ($shQty > 0) {
-            $shQty = 0;
-        }
-        $shUps = $data['ups_per_dc'] - $data['ups_good'] + $data['ups_damage'];
-        if ($shUps > 0) {
-            $shUps = 0;
+        // Vendor only: the stocktr entry form posts an empty DC block
+        // (stored 0/0) and the internal-return line CRUD hardcodes exsh =
+        // 0/0 with dc = 0/0 (getuser_imroupdateform.php).
+        if (ArrivalTypes::hasDcBlock($type)) {
+            $exQty = max(0, $data['qty_good'] + $data['qty_damage'] - $data['qty_per_dc']);
+            $exUps = max(0, $data['ups_good'] + $data['ups_damage'] - $data['ups_per_dc']);
+            $shQty = $data['qty_per_dc'] - $data['qty_good'] + $data['qty_damage'];
+            if ($shQty > 0) {
+                $shQty = 0;
+            }
+            $shUps = $data['ups_per_dc'] - $data['ups_good'] + $data['ups_damage'];
+            if ($shUps > 0) {
+                $shUps = 0;
+            }
+            $exshQty = $exQty !== 0.0 ? $exQty : $shQty;
+            $exshUps = $exUps !== 0 ? $exUps : $shUps;
+        } else {
+            $exshQty = 0;
+            $exshUps = 0;
         }
 
         $goodRows = collect($data['slocs'])->filter(fn ($s) => (float) ($s['qty_good'] ?? 0) > 0)->count();
@@ -606,8 +617,8 @@ class ArrivalController extends Controller
             'ups_good' => $data['ups_good'],
             'qty_damage' => $data['qty_damage'],
             'ups_damage' => $data['ups_damage'],
-            'exsh_qty' => $exQty !== 0.0 ? $exQty : $shQty,
-            'exsh_ups' => $exUps !== 0 ? $exUps : $shUps,
+            'exsh_qty' => $exshQty,
+            'exsh_ups' => $exshUps,
             'noofbin_good' => $goodRows,
             'noofbin_damage' => $damageRows,
             'uom' => $data['uom'],

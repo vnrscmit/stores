@@ -76,5 +76,15 @@ final class ArrivalTypes
         return $type === self::VENDOR;
     }
 
+    /**
+     * Types whose entry form carries the DC (delivery challan) block: only
+     * the vendor GRN. Drives validation, the excess/shortage math and the
+     * party-ledger DC columns (all 0 for the other two types, as in legacy).
+     */
+    public static function hasDcBlock(string $type): bool
+    {
+        return $type === self::VENDOR;
+    }
+
     private function __construct() {}
 }

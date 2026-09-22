@@ -24,7 +24,8 @@ class DashboardController extends Controller
                 ['label' => 'Issue — Material Return to Vendor', 'url' => route('issues.mrtv.index'), 'desc' => 'Material returns to the party'],
                 ['label' => 'Captive Consumption', 'url' => route('issues.cc.index'), 'desc' => 'Internal consumption notes (CC)'],
                 ['label' => 'Arrival from Vendor (GRN)', 'url' => route('arrivals.vendor.index'), 'desc' => 'Receive vendor DC stock into good/damage SLOCs'],
-                ['label' => 'Adjustments', 'url' => '#', 'desc' => 'Discard, excess/shortage, gate movements'],
+                ['label' => 'Stock Transfer In', 'url' => route('arrivals.stocktr.index'), 'desc' => 'Receive transfer-in stock against an STN'],
+                ['label' => 'Internal Return to Stores', 'url' => route('arrivals.internal.index'), 'desc' => 'Return issued stock from a stage back to stores'],
                 ['label' => 'Adjustments', 'url' => '#', 'desc' => 'Discard, excess/shortage, gate movements'],
             ],
         ]);

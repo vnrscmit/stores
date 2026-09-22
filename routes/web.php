@@ -17,6 +17,7 @@ use App\Http\Controllers\Masters\SubBinController;
 use App\Http\Controllers\Masters\WarehouseController;
 use App\Http\Controllers\Viewer\BincardController;
 use App\Http\Controllers\Viewer\ReportController;
+use App\Support\ArrivalTypes;
 use App\Support\IssueTypes;
 use Illuminate\Support\Facades\Route;
 
@@ -156,21 +157,33 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('issues/cc')-
     Route::get('/print/{captive}', [CaptiveController::class, 'show'])->whereNumber('captive')->name('show');
 });
 
-// Arrivals family (Phase 9 slice 2): vendor GRN. Legacy: add_arrival_vendor.php
-// + getuser_vupdateform.php + add_arrival_vendor_preview.php.
-Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('arrivals/vendor')->name('arrivals.vendor.')->group(function () {
-    Route::get('/', [ArrivalController::class, 'index'])->name('index')->defaults('type', 'vendor');
-    Route::get('/new', [ArrivalController::class, 'create'])->name('create')->defaults('type', 'vendor');
-    Route::get('/availability/{classification}/{item}', [ArrivalAvailabilityController::class, 'availability'])
-        ->whereNumber(['classification', 'item'])->name('availability');
-    Route::post('/lines', [ArrivalController::class, 'storeLine'])->name('lines.store')->defaults('type', 'vendor');
-    Route::put('/lines/{line}/update', [ArrivalController::class, 'updateLine'])->whereNumber('line')->name('lines.update');
-    Route::delete('/lines/{line}', [ArrivalController::class, 'deleteLine'])->whereNumber('line')->name('lines.delete');
-    Route::get('/workspace/{arrival}', [ArrivalController::class, 'workspace'])->whereNumber('arrival')->name('workspace');
-    Route::put('/workspace/{arrival}/header', [ArrivalController::class, 'updateHeader'])->whereNumber('arrival')->name('header.update');
-    Route::post('/workspace/{arrival}/post', [ArrivalController::class, 'post'])->whereNumber('arrival')->name('post');
-    Route::get('/print/{arrival}', [ArrivalController::class, 'show'])->whereNumber('arrival')->name('show');
-});
+// Arrivals family (Phase 9 slices 2-4): vendor GRN, stock transfer in and
+// internal return all share ArrivalController through typed routes.
+// Legacy: add_arrival_vendor.php + getuser_vupdateform.php +
+// add_arrival_vendor_preview.php; add_arrival_stocktransfer.php +
+// getuser_stupdateform.php + add_arrival_stocktr_preview.php;
+// add_return_stores.php + getuser_imroupdateform.php +
+// add_return_stores_preview.php.
+foreach (ArrivalTypes::all() as $arrivalType) {
+    // Parameter-less routes pass the type through via ->defaults; model-bound
+    // actions validate the type via the bound model (see typeOf()).
+    Route::middleware(['auth', 'fy', 'can:post-transactions'])
+        ->prefix("arrivals/{$arrivalType}")
+        ->name("arrivals.{$arrivalType}.")
+        ->group(function () use ($arrivalType) {
+            Route::get('/', [ArrivalController::class, 'index'])->name('index')->defaults('type', $arrivalType);
+            Route::get('/new', [ArrivalController::class, 'create'])->name('create')->defaults('type', $arrivalType);
+            Route::get('/availability/{classification}/{item}', [ArrivalAvailabilityController::class, 'availability'])
+                ->whereNumber(['classification', 'item'])->name('availability');
+            Route::post('/lines', [ArrivalController::class, 'storeLine'])->name('lines.store')->defaults('type', $arrivalType);
+            Route::put('/lines/{line}/update', [ArrivalController::class, 'updateLine'])->whereNumber('line')->name('lines.update');
+            Route::delete('/lines/{line}', [ArrivalController::class, 'deleteLine'])->whereNumber('line')->name('lines.delete');
+            Route::get('/workspace/{arrival}', [ArrivalController::class, 'workspace'])->whereNumber('arrival')->name('workspace');
+            Route::put('/workspace/{arrival}/header', [ArrivalController::class, 'updateHeader'])->whereNumber('arrival')->name('header.update');
+            Route::post('/workspace/{arrival}/post', [ArrivalController::class, 'post'])->whereNumber('arrival')->name('post');
+            Route::get('/print/{arrival}', [ArrivalController::class, 'show'])->whereNumber('arrival')->name('show');
+        });
+}
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------
 Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')->name('viewer.reports.')->group(function () {
