@@ -93,7 +93,9 @@ items_id_from, uom_from, typ, remarks, iitrflg) with sub rows
 whid/binid/subbinid, ups_to, qty_to, classification_id, grouped by `rowid`
 = source good-ledger row id).
 
-Posting (per rowid group):
+Posting (per rowid group; trtype literal verified in
+add_iitr_preview.php: **'IT'** for both sides, trid = iitr_id, no party
+id — stlg_trpartyid absent from the legacy insert):
 - **ITI (out)** at the SOURCE location (from the referenced stlg row):
   tr = Σ(ups_to), Σ(qty_to) of the group; bal = op − tr; subtype 'ITI'.
 - **ITA (in)** per sub row at the DESTINATION: tr = ups_to/qty_to; bal =
@@ -158,11 +160,18 @@ Posting (per rowid group):
 4. **Internal-return slice** — same controller, type=internalreturn:
    stageret/retid header, `type='Good'` column, subtype 'Internalreturn',
    own counters. Audit `arrival.internalreturn`.
-5. **ITI/ITA slice** — `Arrival\ItemTransferController`: workspace keyed
-   by source good-ledger row groups; post = ITI out per group + ITA in per
-   destination row (verbatim bal-reset quirk), reorder pass both sides,
-   iitrflg=1 + status, `itemtransfer` counter (documented deviation for
-   the legacy numbering gap). Audit `itransfer.conversion`.
+5. **ITI/ITA slice** — DONE: `Arrival\ItemTransferController` routes
+   under `itransfers.*` (index/create/sources/destinations/lines/
+   workspace/header/post/show); workspace keyed by source good-ledger
+   row groups (rowid), group-level edit = legacy delete-and-reinsert;
+   post = one ITI out per group + one ITA in per destination row
+   (verbatim bal-reset quirk computed per side, sub-bin flips per
+   StockLedgerService semantics), reorder pass both sides,
+   iitrflg=1 + status, `iitr` counter (documented deviation for the
+   legacy numbering gap). Audit `itransfer.conversion`.
+   Suite: `Phase9ItemTransferTest` (14 tests: conservation, both quirk
+   branches, overflow guard, group edit, idempotency, immutability,
+   numbering isolation, render/gates).
 6. **Test suites** — `tests/Feature/Phase9ArrivalsTest.php` (hermetic,
    pipeline-gated like Phase 6/7): auth/role gates, FY gate, vendor
    good-only / damage-only / mixed-sloc happy paths (assert both ledgers,

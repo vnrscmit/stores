@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
 use App\Http\Controllers\Arrival\ArrivalController;
+use App\Http\Controllers\Arrival\ItemTransferController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
@@ -184,6 +185,28 @@ foreach (ArrivalTypes::all() as $arrivalType) {
             Route::get('/print/{arrival}', [ArrivalController::class, 'show'])->whereNumber('arrival')->name('show');
         });
 }
+
+// Inter-item transfer (ITI/ITA) — Phase 9 slice 5. Legacy:
+// add_interitem.php + getuser_iitupdate.php + getuser_iitetdupdate.php +
+// add_iitr_preview.php. Source-row groups are addressed by the source
+// good-ledger row id (item_transfer_items.rowid).
+Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('itransfers')->name('itransfers.')->group(function () {
+    Route::get('/', [ItemTransferController::class, 'index'])->name('index');
+    Route::get('/new', [ItemTransferController::class, 'create'])->name('create');
+    Route::get('/sources/{classification}/{item}', [ItemTransferController::class, 'sourceAvailability'])
+        ->whereNumber(['classification', 'item'])->name('sources');
+    Route::get('/destinations/{classification}/{item}', [ItemTransferController::class, 'destinationItems'])
+        ->whereNumber(['classification', 'item'])->name('destinations');
+    Route::get('/destination-locations/{item}', [ItemTransferController::class, 'destinationLocations'])
+        ->whereNumber('item')->name('destination-locations');
+    Route::post('/lines', [ItemTransferController::class, 'storeLine'])->name('lines.store');
+    Route::put('/lines/{rowid}', [ItemTransferController::class, 'updateLine'])->whereNumber('rowid')->name('lines.update');
+    Route::delete('/lines/{rowid}', [ItemTransferController::class, 'deleteLine'])->whereNumber('rowid')->name('lines.delete');
+    Route::get('/workspace/{transfer}', [ItemTransferController::class, 'workspace'])->whereNumber('transfer')->name('workspace');
+    Route::put('/workspace/{transfer}/header', [ItemTransferController::class, 'updateHeader'])->whereNumber('transfer')->name('header.update');
+    Route::post('/workspace/{transfer}/post', [ItemTransferController::class, 'post'])->whereNumber('transfer')->name('post');
+    Route::get('/print/{transfer}', [ItemTransferController::class, 'show'])->whereNumber('transfer')->name('show');
+});
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------
 Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('viewer/reports')->name('viewer.reports.')->group(function () {

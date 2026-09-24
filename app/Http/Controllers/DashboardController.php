@@ -26,6 +26,7 @@ class DashboardController extends Controller
                 ['label' => 'Arrival from Vendor (GRN)', 'url' => route('arrivals.vendor.index'), 'desc' => 'Receive vendor DC stock into good/damage SLOCs'],
                 ['label' => 'Stock Transfer In', 'url' => route('arrivals.stocktr.index'), 'desc' => 'Receive transfer-in stock against an STN'],
                 ['label' => 'Internal Return to Stores', 'url' => route('arrivals.internal.index'), 'desc' => 'Return issued stock from a stage back to stores'],
+                ['label' => 'Inter Item Transfer', 'url' => route('itransfers.index'), 'desc' => 'Convert source item stock into destination items (ITI/ITA)'],
                 ['label' => 'Adjustments', 'url' => '#', 'desc' => 'Discard, excess/shortage, gate movements'],
             ],
         ]);

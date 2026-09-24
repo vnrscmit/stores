@@ -281,10 +281,27 @@ arrivals family (vendor GRN, stock transfer in, internal return) →
 discard/excess-shortage/gate movements → QR/backup/audit screens →
 UI unify → performance → cutover docs.
 
-The next phase is the **arrivals family**: goods receipts against vendors
-(tblarrival + tblarrival_sub + tblarr_sloc → arrivals / arrival_items /
-arrival_slocs, `Arrival`/`Vendor` ledger rows), stock-transfer-in
-(`IT`/`ITI`/`ITA`) and internal returns, following the Phase 6/7 workspace
-pattern — header on first line, AJAX line workspace, transactional
-StockLedgerService::post, per-type document counters, audit rows, and a
-hermetic Phase 9 suite.
+The **arrivals family** (Phase 9, plan in docs/PHASE9.md) is implemented
+through the vendor GRN, stock transfer in and internal return types
+sharing `ArrivalController` (slices 2–4) and the inter-item transfer
+ITI/ITA module (`ItemTransferController`, slice 5):
+
+- Schema: migration `000053` adds a guarded `status` (open|posted) to
+  `arrivals` and `item_transfers`, backfilled from arrtrflag/iitrflg.
+- Posting: header on first line (legacy trid=0 AJAX branch), AJAX line
+  workspace with server-side validation, one transactional idempotent
+  post through StockLedgerService (direction per side, sub-bin flips,
+  reorder passes), per-type document counters, audit rows, immutable
+  posted documents.
+- Vendor GRN keeps the verbatim party-ledger excess/shortage math (ex
+  floored at 0, sh stored ≤ 0) and the mixed good+damage sloc quirk
+  (damage side only; counted in the audit row).
+- ITI/ITA: source good-ledger row groups (item_transfer_items.rowid) post
+  one ITI out per group (Σ ups_to/qty_to, bal = op − tr) and one ITA in
+  per destination row with the verbatim legacy quirk bal = tr when the
+  destination opening is 0/0 (reset instead of add) — see
+  docs/PHASE9.md §2.4. Committed serial from the `iitr` counter (TIIT…):
+  a documented deviation, the legacy numbering block was commented out.
+- Suites: Phase9VendorArrivalTest, Phase9StocktrInternalTest and
+  Phase9ItemTransferTest, all hermetic (pipeline once per process,
+  artifact sweep per method, append-only-ledger revert).
