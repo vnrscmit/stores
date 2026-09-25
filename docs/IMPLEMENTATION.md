@@ -356,3 +356,40 @@ replacing the placeholder Adjustments entry:
   Phase9ExcessShortageTest (14 tests, hermetic, sweeps ES artifacts in
   both ledgers). Full suite after the slice: 177 passed / 1 skipped,
   2,967 assertions.
+
+The **Gate movement module** (Phase 9 slice 8, Good→Damage / Damage→Good)
+is ported as `GateMovementController` under `gatemovements.*` with the two
+operator cards replacing the placeholder Gate movements entry:
+
+- One document converts ONE item, slot by slot: the source SLOC is
+  referenced by its ledger row (`gtod_items.rowid` / `dtog_items.rowid` —
+  the availability pane implements the getuser_gd_slocshow /
+  getuser_dg_slocshowd latest-row-per-location semantics on the
+  direction's SOURCE ledger: good for G2D, damage for D2G) and the
+  destination SLOCs are free numeric wh/bin/sub-bin inputs validated
+  against sub_bins (ITI destination semantics). G2D carries a party
+  (required; tbl_dtog has no party_id column).
+- Post (verbatim docs/PHASE9.md §2.7): good out row via the service
+  writer (trtype/subtype 'GD', party id on the row) for G2D; the DG
+  damage out row written by hand because of the VERBATIM legacy quirk
+  stld_balups = op (UPS NOT decremented); ES-style destination in rows
+  (bal = live op + tr with the UPS normalization) with UNCONDITIONAL
+  'Damage'/'Good' sub-bin flips; on a full source drain the
+  unconditional Empty flip (the legacy scoped cross-item check was dead
+  code — undefined $totnog, same as the service writer); ONE party-ledger
+  row per G2D document (damage = Σ tr, bal = opening − damage, every
+  other side 0 as legacy wrote them); the G2D reorder pass only; commit
+  gcode/dcode + ncode, flag = 1; NO gate pass (G2D/D2G never touch
+  tbl_gate). Transactional + idempotent.
+- Deliberate deviations (documented in docs/PHASE9.md §2.7): the legacy
+  queues purged every unposted document on page load — the port keeps
+  open workspaces with delete-and-reinsert row edits (same deviation as
+  the ES slice); draft serials use new `gtod.draft` / `dtog.draft`
+  counters (legacy left them blank).
+- Counters: `gtod`/`dtog`/`gatepass` seeds already provisioned; audit
+  modules `gatemovement.g2d` / `gatemovement.d2g`; suite
+  Phase9GateMovementTest (15 tests, hermetic, sweeps GD/DG ledger rows,
+  party-ledger rows and documents in both directions; the stocked-item
+  helpers exclude srl-tracked items AND rows with trid <= 0 so other
+  suites' unswept seed debris can never be picked). Full suite after
+  the slice: 192 passed / 1 skipped, 3,088 assertions.

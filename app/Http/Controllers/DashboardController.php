@@ -29,7 +29,8 @@ class DashboardController extends Controller
                 ['label' => 'Inter Item Transfer', 'url' => route('itransfers.index'), 'desc' => 'Convert source item stock into destination items (ITI/ITA)'],
                 ['label' => 'Material Discard', 'url' => route('discards.index'), 'desc' => 'Discard damaged stock out of the damage ledger (MD)'],
                 ['label' => 'Excess / Shortage', 'url' => route('exshorts.index'), 'desc' => 'Adjust stock up (ES) or down (SH) per SLOC'],
-                ['label' => 'Gate movements', 'url' => '#', 'desc' => 'Gate pass movements (G2D / D2G)'],
+                ['label' => 'Gate movements — Good to Damage', 'url' => route('gatemovements.index'), 'desc' => 'Convert good stock into the damage ledger (G2D)'],
+                ['label' => 'Gate movements — Damage to Good', 'url' => route('gatemovements.index-d2g'), 'desc' => 'Convert damage stock back into the good ledger (D2G)'],
             ],
         ]);
     }

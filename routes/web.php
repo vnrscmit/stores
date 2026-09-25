@@ -10,6 +10,7 @@ use App\Http\Controllers\DiscardController;
 use App\Http\Controllers\EIndent\EIndentController;
 use App\Http\Controllers\EIndent\IndentItemController;
 use App\Http\Controllers\ExcessShortageController;
+use App\Http\Controllers\GateMovementController;
 use App\Http\Controllers\Issue\EIssueController;
 use App\Http\Controllers\Issue\EIssueLineController;
 use App\Http\Controllers\Masters\BinController;
@@ -251,6 +252,41 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('exshorts')->
         ->whereNumber('excess')->name('post');
     Route::get('/print/{excess}', [ExcessShortageController::class, 'show'])
         ->whereNumber('excess')->name('show');
+});
+
+// Gate movements (Phase 9 slice 8): Good→Damage / Damage→Good conversion
+// between the two ledgers. Legacy: getuser_gdupdate.php +
+// getuser_gdetdupdate.php (G2D line save) / getuser_dgupdate.php (D2G
+// line save) + add_gtod_preview.php / add_dtog_preview.php (final post)
+// + getuser_gd_slocshow.php / getuser_dg_slocshowd.php (availability).
+// Source rows are addressed by their source ledger row id
+// (gtod_items.rowid / dtog_items.rowid).
+Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('gatemovements')->name('gatemovements.')->group(function () {
+    Route::get('/', [GateMovementController::class, 'index'])->name('index');
+    Route::get('/d2g', [GateMovementController::class, 'indexD2g'])->name('index-d2g');
+    Route::get('/new', [GateMovementController::class, 'create'])->defaults('direction', 'g2d')->name('create');
+    Route::get('/new/d2g', [GateMovementController::class, 'create'])->defaults('direction', 'd2g')->name('create-d2g');
+    Route::get('/items/{classification}', [GateMovementController::class, 'items'])
+        ->whereNumber('classification')->name('items');
+    Route::get('/availability/{item}', [GateMovementController::class, 'availability'])
+        ->whereNumber('item')->name('availability');
+    Route::post('/documents', [GateMovementController::class, 'store'])->name('store');
+    Route::get('/workspace/{gtod}', [GateMovementController::class, 'workspace'])
+        ->whereNumber('gtod')->name('workspace');
+    Route::get('/workspace/d2g/{dtog}', [GateMovementController::class, 'workspaceD2g'])
+        ->whereNumber('dtog')->name('workspace-d2g');
+    Route::put('/workspace/{gtod}/header', [GateMovementController::class, 'updateHeader'])
+        ->whereNumber('gtod')->name('header.update');
+    Route::put('/workspace/d2g/{dtog}/header', [GateMovementController::class, 'updateHeaderD2g'])
+        ->whereNumber('dtog')->name('header.update-d2g');
+    Route::post('/workspace/{gtod}/post', [GateMovementController::class, 'post'])
+        ->whereNumber('gtod')->name('post');
+    Route::post('/workspace/d2g/{dtog}/post', [GateMovementController::class, 'postD2g'])
+        ->whereNumber('dtog')->name('post-d2g');
+    Route::get('/print/{gtod}', [GateMovementController::class, 'show'])
+        ->whereNumber('gtod')->name('show');
+    Route::get('/print/d2g/{dtog}', [GateMovementController::class, 'showD2g'])
+        ->whereNumber('dtog')->name('show-d2g');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

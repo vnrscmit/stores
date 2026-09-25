@@ -1,4 +1,4 @@
-# Phase 9 — Arrivals family (vendor GRN, stock transfer in, internal return, ITI/ITA) + Material Discard + Excess/Shortage
+# Phase 9 — Arrivals family (vendor GRN, stock transfer in, internal return, ITI/ITA) + Material Discard + Excess/Shortage + Gate movements (G2D/D2G)
 
 Survey of the legacy sources and the implementation plan. No code written yet.
 
@@ -14,6 +14,7 @@ Four inbound-movement modules, one phase:
 | Inter-item transfer (ITI/ITA) | `add_interitem.php` (1,418 ln workspace), `add_iitr_preview.php` (posting) | `item_transfers`, `item_transfer_items` |
 | Material Discard (MD) | `add_material_discard.php` (1,329 ln workspace), `add_discard.php` (queue/home), `add_discard_str_preview.php` (posting), `add_discard_str_view.php`, `getuser_discard3.php` (line save), `getuser_discard_slocshow.php` (damage availability) | `discards`, `discard_items`, `discard_slocs` |
 | Excess/Shortage (ES) | `add_e.php` / `add_e1.php` (entry + line save), `add_exsh_preview.php` (posting), `add_exsh_view.php`, `edit_exsh.php` (line edit), `getuser_exsh_slocshow.php` (stock availability), `select_es_op.php` (bin status sheet), `add_shortage.php` / `add_shortage1.php` (queue), `es_note_print.php` (note print) | `excesses`, `excess_items` |
+| Gate movements (G2D/D2G) | `add_g.php` / `add_d.php` (queues + purge), `getuser_gdupdate.php` + `getuser_gdetdupdate.php` (G2D line save), `getuser_dgupdate.php` (D2G line save), `add_gtod_preview.php` + `add_dtog_preview.php` (posting), `gtodnote.php` / `dtognote.php` (notes), `select_gtod.php` / `select_d2gn.php` (output type), `getuser_gd_slocshow.php` + `getuser_dg_slocshowd.php` (availability), `home_gtodsloc.php` + `gooddamage_stock_sloc.php` (dead-end home redirects) | `gtods`, `gtod_items`, `dtogs`, `dtog_items` |
 
 The `internal_returns` table (rid/code/rfs/rbd…) is NOT the internal-return
 document store — the live flow stores internal returns as `arrivals` rows
@@ -188,12 +189,65 @@ header `typ` selects (the whole document is good OR damage):
   documented semantics as applyReorderFlag).
 - Commit: escode = MAX+1 per yearcode ('excess' counter), ncode =
   MAX+1 per yearcode ('excess.n'), esflg = 1. No gate pass. Draft
-  `code` = MAX+1 per yearcode at creation (add_e1.php).
+  `  code` = MAX+1 per yearcode at creation (add_e1.php).
 - Legacy quirks handled deliberately: the queue screen (add_shortage
   .php) DELETED every esflg=0 document on page load — the port keeps
   open workspaces with edit_exsh.php's delete-and-reinsert semantics;
   the bin status sheet (select_es_op.php) filtered subtype='ES' and hid
   shortage rows — the port lists both sides.
+
+### 2.7 Gate movements G2D/D2G (getuser_gdupdate.php + add_gtod_preview.php / getuser_dgupdate.php + add_dtog_preview.php)
+
+Legacy flow: the home pages (home_gtodsloc.php / gooddamage_stock_sloc
+.php) are dead-end redirects to the queues (add_g.php / add_d.php). The
+line save (AJAX getuser_gdupdate.php / getuser_gdetdupdate.php for G2D,
+getuser_dgupdate.php for D2G) creates the header lazily (trid=0 branch,
+flag=0) and inserts only the DESTINATION slots as document rows — the
+SOURCE SLOC is referenced by its ledger row id (rowid), whose ups/qty
+the operator picks from the availability pane (getuser_gd_slocshow.php /
+getuser_dg_slocshowd.php: latest row per location with balqty > 0). The
+preview screen (add_gtod_preview.php / add_dtog_preview.php) posts on
+frm_action=submit:
+
+- G2D — per tbl_gtod_sub rowid group (`SELECT sum(ups),sum(qty) … GROUP
+  BY rowid`):
+  - GOOD ledger out row: trtype/subtype 'GD', trid = gid, trpartyid =
+    the header's party; opening = the LIVE latest good balance at the
+    source location (the preview re-queried MAX(stlg_id) at post time);
+    bal = op − tr (balups with the legacy max(0,…) UNSIGNED clamp);
+    on balqty == 0 the Empty flip runs through a scoped cross-item
+    check that was DEAD CODE (the counter `$totnog` is undefined), so
+    the flip was UNCONDITIONAL — same as the service writer.
+  - DAMAGE ledger in row PER gtod_items row: trtype/subtype 'GD',
+    opening = the latest damage balance at the destination (0 when
+    none), bal = op + tr with the ES-style UPS normalization; subbin
+    status → 'Damage' UNCONDITIONALLY (the GD writer never scopes the
+    flip).
+  - PARTY ledger row: ONE per document (legacy summed the whole
+    tbl_gtod_sub, keyed on the header's party/class/item) — damage =
+    Σ tr, bal = opening − damage; every other side (dc/good/ex/sh)
+    written as 0.
+  - Reorder pass once per document (good ledger, verbatim degenerate
+    sum semantics — see applyReorderFlag).
+  - Commit: gcode/ncode = MAX+1 per yearcode, gdflg = 1. No gate pass
+    (the GD writer never touches tbl_gate — G2D is a bin-level
+    conversion, not a physical gate movement).
+- D2G — per tbl_dtog_sub rowid group, trtype/subtype 'DG' both ledgers:
+  - DAMAGE ledger out row: trid = did, trpartyid 0 (the D2G writer
+    passes no party); balqty = op − tr BUT stld_balups = op VERBATIM
+    (the insert literally writes the opening into the balance column —
+    UPS is NOT decremented; preserved, then unsigned-clamped).
+  - GOOD ledger in row per dtog_items row: ES-style balance (op + tr,
+    normalization), subbin status → 'Good' unconditionally.
+  - NO party-ledger row, NO reorder pass (the DG writer has neither).
+  - Commit: dcode/ncode = MAX+1 per yearcode, dgflg = 1. No gate pass.
+- Legacy quirks handled deliberately: the queues (add_g.php /
+  add_d.php) PURGED every open document (flag=0) on page load — the
+  port keeps open workspaces with delete-and-reinsert row edits (same
+  deviation as the ES slice); the header's party is G2D-only (tbl_dtog
+  has no party_id column); draft serials use new `gtod.draft` /
+  `dtog.draft` counters (legacy left them blank).
+
 
 ## 3. Laravel-side reuse (verified present)
 
@@ -284,6 +338,27 @@ header `typ` selects (the whole document is good OR damage):
    artifacts in both ledgers incl. the negative-trid seed rows; the
    stocked-item helpers exclude srl-tracked items so the reorder pass
    can never re-flag migrated rows).
+8. **Gate movement slice** — DONE: `GateMovementController` routes
+   under `gatemovements.*` (index, index-d2g, create + create-d2g,
+   items, availability, store, workspace/workspace-d2g, header.update
+   + header.update-d2g, post + post-d2g, show/show-d2g) with the two
+   operator cards replacing the placeholder Gate movements entry;
+   stockRowsFor() implements the getuser_gd_slocshow /
+   getuser_dg_slocshowd semantics for the direction's SOURCE ledger
+   (good for G2D, damage for D2G); post() = verbatim §2.7 math — good
+   out row via StockLedgerService (G2D) and the hand-written DG damage
+   out row with the balups = op quirk (D2G), ES-style destination in
+   rows with unconditional Damage/Good flips, one party-ledger row per
+   G2D document (all non-damage sides 0, as legacy wrote them), the
+   G2D reorder pass, gcode/dcode + ncode commits, flags = 1, no gate
+   pass, transactional + idempotent. Audit modules `gatemovement.g2d`
+   / `gatemovement.d2g`. No seeder change needed (the gtod/dtog/
+   gatepass counter seeds were already provisioned).
+   Suite: `Phase9GateMovementTest` (15 tests, hermetic, sweeps GD/DG
+   ledger rows, party-ledger rows and documents in both directions
+   incl. the negative-trid seed rows; the stocked-item helpers exclude
+   srl-tracked items and rows with trid <= 0 so other suites' unswept
+   seed debris can never be picked).
 6. **Test suites** — `tests/Feature/Phase9ArrivalsTest.php` (hermetic,
    pipeline-gated like Phase 6/7): auth/role gates, FY gate, vendor
    good-only / damage-only / mixed-sloc happy paths (assert both ledgers,
