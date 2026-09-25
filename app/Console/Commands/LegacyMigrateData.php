@@ -317,6 +317,14 @@ class LegacyMigrateData extends Command
             ['arrival.internal', 'arrivals', 'yearcode', 'arr_code', "arrival_type = 'Internalreturn'"],
             ['captive.vendor', 'captives', 'yearcode', 'cc_code', null],
             ['discard', 'discards', 'yearcode', 'dd_code', null],
+            ['discard.n', 'discards', 'yearcode', 'ncode', null],
+            // Gate-pass serials: legacy computed gpcode from MAX(gpcode)
+            // per yearcode when tbl_gate had rows, else from the whole
+            // table (add_discard_str_preview.php / add_cc_preview.php
+            // fallback). Seed per-year MAX, plus a global fallback so the
+            // first post of an empty year cannot collide with another
+            // year's serials.
+            ['gatepass', 'gate_passes', 'yearcode', 'gpcode', null],
             ['excess', 'excesses', 'yearcode', 'escode', null],
             ['sloc', 'slocs', 'yearcode', 'scode', null],
             ['iitr', 'item_transfers', 'yearcode', 'iitr_code', null],

@@ -6,6 +6,7 @@ use App\Http\Controllers\Arrival\ItemTransferController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiscardController;
 use App\Http\Controllers\EIndent\EIndentController;
 use App\Http\Controllers\EIndent\IndentItemController;
 use App\Http\Controllers\Issue\EIssueController;
@@ -206,6 +207,26 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('itransfers')
     Route::put('/workspace/{transfer}/header', [ItemTransferController::class, 'updateHeader'])->whereNumber('transfer')->name('header.update');
     Route::post('/workspace/{transfer}/post', [ItemTransferController::class, 'post'])->whereNumber('transfer')->name('post');
     Route::get('/print/{transfer}', [ItemTransferController::class, 'show'])->whereNumber('transfer')->name('show');
+});
+
+// Material Discard (Phase 9 slice 6): damaged stock leaves via the DAMAGE
+// ledger. Legacy: add_material_discard.php + getuser_discard3.php +
+// add_discard_str_preview.php. Sloc rows are addressed by their source
+// damage-ledger row id (discard_slocs.discard_rowid).
+Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('discards')->name('discards.')->group(function () {
+    Route::get('/', [DiscardController::class, 'index'])->name('index');
+    Route::get('/new', [DiscardController::class, 'create'])->name('create');
+    Route::get('/items/{classification}', [DiscardController::class, 'items'])
+        ->whereNumber('classification')->name('items');
+    Route::get('/availability/{item}', [DiscardController::class, 'availability'])
+        ->whereNumber('item')->name('availability');
+    Route::post('/lines', [DiscardController::class, 'storeLine'])->name('lines.store');
+    Route::put('/lines/{did}', [DiscardController::class, 'updateLine'])->whereNumber('did')->name('lines.update');
+    Route::delete('/lines/{did}', [DiscardController::class, 'deleteLine'])->whereNumber('did')->name('lines.delete');
+    Route::get('/workspace/{discard}', [DiscardController::class, 'workspace'])->whereNumber('discard')->name('workspace');
+    Route::put('/workspace/{discard}/header', [DiscardController::class, 'updateHeader'])->whereNumber('discard')->name('header.update');
+    Route::post('/workspace/{discard}/post', [DiscardController::class, 'post'])->whereNumber('discard')->name('post');
+    Route::get('/print/{discard}', [DiscardController::class, 'show'])->whereNumber('discard')->name('show');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

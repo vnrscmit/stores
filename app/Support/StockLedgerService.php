@@ -38,10 +38,14 @@ class StockLedgerService
     {
         $damage = (bool) ($p['damage'] ?? false);
 
+        // Damage ledger columns carry the stld_ prefix (stld_trtype, ...);
+        // good-ledger columns use stlg_ — read and write through one prefix.
+        $c = $damage ? 'stld' : 'stlg';
+
         $latest = self::latestRow((int) $p['item_id'], (int) $p['whid'], (int) $p['binid'], (int) $p['subbinid'], $damage);
 
-        $opups = (int) ($latest->stlg_balups ?? 0);
-        $opqty = (float) ($latest->stlg_balqty ?? 0);
+        $opups = (int) ($latest->{"{$c}_balups"} ?? 0);
+        $opqty = (float) ($latest->{"{$c}_balqty"} ?? 0);
 
         $trqty = (float) $p['qty'];
         $trups = (int) $p['ups'];
@@ -58,9 +62,6 @@ class StockLedgerService
         }
 
         $row = $damage ? new StockLedgerDamage : new StockLedgerGood;
-
-        // Damage ledger columns carry the stld_ prefix (stld_trtype, ...).
-        $c = $damage ? 'stld' : 'stlg';
 
         $row->yearcode = $p['yearcode'];
         $row->{"{$c}_trtype"} = $p['trtype'];

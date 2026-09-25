@@ -1,4 +1,4 @@
-# Phase 9 — Arrivals family (vendor GRN, stock transfer in, internal return, ITI/ITA)
+# Phase 9 — Arrivals family (vendor GRN, stock transfer in, internal return, ITI/ITA) + Material Discard
 
 Survey of the legacy sources and the implementation plan. No code written yet.
 
@@ -12,6 +12,7 @@ Four inbound-movement modules, one phase:
 | Stock transfer in | `add_arrival_stocktransfer.php` (+2/22/1111 variants), `add_arrival_stocktr_preview.php` (posting), `add_arrival_stocktr_view.php`, `getuser_stupdateform.php` / `getuser_steditsubupdate.php` (line CRUD) | same |
 | Internal return | `add_return_stores.php` (+2/22/old variants), `add_return_stores_preview.php` (posting), `add_returnd_stores*.php` (damage-return variant), `getuser_imroupdateform.php` / `getuser_imroeditsubupdate.php` / `getuser_imrodeditsubupdate.php` (line CRUD incl. the `tblarrival` header insert) | same |
 | Inter-item transfer (ITI/ITA) | `add_interitem.php` (1,418 ln workspace), `add_iitr_preview.php` (posting) | `item_transfers`, `item_transfer_items` |
+| Material Discard (MD) | `add_material_discard.php` (1,329 ln workspace), `add_discard.php` (queue/home), `add_discard_str_preview.php` (posting), `add_discard_str_view.php`, `getuser_discard3.php` (line save), `getuser_discard_slocshow.php` (damage availability) | `discards`, `discard_items`, `discard_slocs` |
 
 The `internal_returns` table (rid/code/rfs/rbd…) is NOT the internal-return
 document store — the live flow stores internal returns as `arrivals` rows
@@ -111,6 +112,44 @@ id — stlg_trpartyid absent from the legacy insert):
   if not, still set it as the readable posted marker mirroring issues'
   status column).
 
+### 2.5 Material Discard MD (add_discard_str_preview.php + getuser_discard3.php + getuser_discard_slocshow.php)
+
+Document = `tbl_discard` (→ discards: tid, tdate, drno, party_name +
+address block, tmode/tname/lrno/vno/cname/dcno/pmode/pname/rettyp,
+remarks, yearcode, ddrole, ddflg, tcode, dd_code, ncode) with per-item
+rows `tbl_discard_sub` (→ discard_items: did_s → tid, calssification_id
+[legacy spelling], items_id, uom, ups, qty, type, remark) and
+per-source-row rows `tbl_discard_sloc` (→ discard_slocs: discard_type
+'MD', discard_trid → tid, discard_id → did, classification_id, item_id,
+whid, binid, subbin, qty_discard, ups_discard, qty_balance, ups_balance,
+discard_rowid → stld_id, eid).
+
+Posting (verified in add_discard_str_preview.php):
+- One damage-ledger OUT per discard_slocs row: trtype **'Discard'**,
+  subtype **'MD'**, trid = tid, trdate = tdate, classid/item/location
+  from the referenced stld row, tr = sloc qty/ups, op = latest damage
+  row at that item×location, bal = op − tr. Legacy wrote party_name
+  into stld_trpartyid verbatim (a string — no party id lookup).
+- **NO reorder pass** (unlike the issue/ITI writers).
+- **Empty flip is SCOPED**: when the moved item's balance hits 0,
+  legacy collects the DISTINCT locations hosting OTHER items of the
+  same class (stld_trclassid = class AND stld_tritemid != item), takes
+  the latest row per location regardless of item, and only leaves the
+  sub-bin at 'Empty' when NO such location still holds a positive
+  balance. The check runs on the just-written row's balance (the
+  legacy writer loops on balqty), not on the baseline row the UI
+  picked. Ported as restoreLegacyEmptyScope() after the service's
+  unconditional balqty==0 flip.
+- Counters at commit: dd_code = MAX+1 per yearcode (DocumentNumber
+  'discard', TDD…), ncode = MAX+1 per yearcode ('discard.n'),
+  ddflg = 1; one gate_passes row with gpcode = MAX+1 per yearcode
+  ('gatepass' counter) and trid = "MD{dd_code}". Header tcode = tid on
+  create (the trid=0 AJAX branch wrote the header then set tcode).
+- Availability (getuser_discard_slocshow.php): selectable rows =
+  MAX(stld_id) per item×location with stld_balqty > 0 ON THAT ROW — a
+  superseded row at a location (a later row exists) is never listed
+  even when its stored balance is positive.
+
 ## 3. Laravel-side reuse (verified present)
 
 - `StockLedgerService::post(array $p)` — direction in/out, `damage` flag,
@@ -172,6 +211,20 @@ id — stlg_trpartyid absent from the legacy insert):
    Suite: `Phase9ItemTransferTest` (14 tests: conservation, both quirk
    branches, overflow guard, group edit, idempotency, immutability,
    numbering isolation, render/gates).
+7. **Material Discard slice** — DONE: `DiscardController` routes under
+   `discards.*` (index/create/items/availability/lines.store/lines.update/
+   lines.delete/workspace/header.update/post/show) with the operator
+   card on the dashboard; damageRowsFor() implements the
+   getuser_discard_slocshow semantics; post() = one MD out per
+   discard_slocs row, transactional + idempotent, no reorder pass,
+   scoped Empty flip restored per §2.5, dd_code/ncode/gpcode counters,
+   ddflg = 1, audit module `discard.md`. Also fixed here:
+   StockLedgerService::post read the good-ledger stlg_* opening
+   columns for damage rows (stld_*) — latent since the service was
+   written, exposed by the first damage-ledger posting path.
+   Suite: `Phase9DiscardTest` (13 tests, hermetic, sweeps discard
+   artifacts incl. the trid=0 seed rows; differential counter
+   assertions primed via DocumentNumber::prime).
 6. **Test suites** — `tests/Feature/Phase9ArrivalsTest.php` (hermetic,
    pipeline-gated like Phase 6/7): auth/role gates, FY gate, vendor
    good-only / damage-only / mixed-sloc happy paths (assert both ledgers,

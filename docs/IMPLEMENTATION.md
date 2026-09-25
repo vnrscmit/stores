@@ -305,3 +305,25 @@ ITI/ITA module (`ItemTransferController`, slice 5):
 - Suites: Phase9VendorArrivalTest, Phase9StocktrInternalTest and
   Phase9ItemTransferTest, all hermetic (pipeline once per process,
   artifact sweep per method, append-only-ledger revert).
+
+The **Material Discard adjustment module** (Phase 9 slice 6) is ported as
+`DiscardController` under `discards.*` with the operator dashboard card:
+
+- Workspace: classification → item → damage availability (latest damage
+  row per item×location with a positive balance, verbatim
+  getuser_discard_slocshow semantics), AJAX line save/edit (delete-and-
+  reinsert, returns the new did)/delete, header created on first line
+  with tcode = tid (legacy trid=0 branch).
+- Post: one transactional idempotent pass — one damage-ledger OUT per
+  discard_slocs row (trtype 'Discard', subtype 'MD', stld_trpartyid =
+  party_name verbatim), **no reorder pass** (verified legacy behaviour),
+  the scoped cross-item Empty check (restoreLegacyEmptyScope) restoring
+  'Good' when other same-class items still hold the sub-bin, dd_code/
+  ncode/gpcode counters, ddflg = 1, gate pass trid "MD{dd_code}".
+- Service fix surfaced by the first damage-ledger posting path:
+  StockLedgerService::post was reading the good-ledger stlg_* opening
+  columns for damage rows (stld_*) — every damage-side post would have
+  opened at zero; now reads through the ledger-appropriate prefix.
+- Audit module `discard.md`; suite Phase9DiscardTest (13 tests, hermetic,
+  sweeps discard artifacts incl. trid=0 seed rows). Full suite after the
+  slice: 163 passed / 1 skipped, 2,875 assertions.

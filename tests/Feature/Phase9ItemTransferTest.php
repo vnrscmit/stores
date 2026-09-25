@@ -152,10 +152,19 @@ class Phase9ItemTransferTest extends TestCase
     /**
      * A real destination sub-bin (the migrated sub_bins carry placeholder
      * rows with NULL whid/binid — those are never valid targets), distinct
-     * from the given locations to avoid.
+     * from the given locations to avoid. $exclude holds [whid, binid,
+     * subbinid] triples — one flat or nested, both are accepted.
      */
     private function destinationLocation(array $exclude = []): array
     {
+        // Accept flat triples [whid, binid, subbinid] as well as nested
+        // [[whid, binid, subbinid], ...] entries — both shapes were
+        // historically passed here. A flat triple is a 3-element list of
+        // scalars; wrap it once so it survives as a single location.
+        if (count($exclude) === 3 && array_is_list($exclude) && ! is_array($exclude[0])) {
+            $exclude = [$exclude];
+        }
+
         $rows = DB::table('sub_bins')
             ->where('sid', '!=', 0)
             ->whereNotNull('whid')
