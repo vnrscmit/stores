@@ -63,6 +63,7 @@ class DashboardController extends Controller
             ['label' => 'Year Setting', 'url' => '#', 'desc' => 'Active fiscal year and year-end close'],
             ['label' => 'e-Indent Approvals', 'url' => route('eindents.approvals'), 'desc' => 'Approve or return submitted indents'],
             ['label' => 'Reports', 'url' => route('viewer.reports.index'), 'desc' => 'Stock, ledger and movement reports'],
+            ['label' => 'Database backup', 'url' => route('admin.backup.index'), 'desc' => 'Download a full SQL dump of the database'],
         ];
     }
 }

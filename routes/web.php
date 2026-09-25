@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
 use App\Http\Controllers\Arrival\ArrivalController;
 use App\Http\Controllers\Arrival\ItemTransferController;
@@ -287,6 +288,15 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('gatemovement
         ->whereNumber('gtod')->name('show');
     Route::get('/print/d2g/{dtog}', [GateMovementController::class, 'showD2g'])
         ->whereNumber('dtog')->name('show-d2g');
+});
+
+// Database backup (Phase 10 slice 1): the legacy admin navbar "Backup"
+// popup (utility/backup.php full dump + backup1.php business-tables
+// variant), streamed instead of buffered.
+Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/backup')->name('admin.backup.')->group(function () {
+    Route::get('/', [BackupController::class, 'index'])->name('index');
+    Route::get('/download', [BackupController::class, 'download'])->name('download');
+    Route::get('/download/business', [BackupController::class, 'downloadBusiness'])->name('download-business');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

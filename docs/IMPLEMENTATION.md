@@ -393,3 +393,32 @@ operator cards replacing the placeholder Gate movements entry:
   helpers exclude srl-tracked items AND rows with trid <= 0 so other
   suites' unswept seed debris can never be picked). Full suite after
   the slice: 192 passed / 1 skipped, 3,088 assertions.
+
+The **database backup module** (Phase 10 slice 1) is ported as
+`Admin\BackupController` over `admin/backup.*` routes (`role:admin`) with
+the admin dashboard card "Database backup":
+
+- `App\Support\DatabaseBackup` streams the legacy utility/backup.php
+  full dump (every table: SHOW CREATE TABLE + one INSERT per row, NO
+  DROP statements — restore into an EMPTY database, verbatim legacy
+  semantics) plus the backup1.php business-tables variant (the fixed
+  51-table legacy list mapped onto the port's tables, data only, bare
+  INSERTs; merged/absent legacy names recorded as comments).
+- Deliberate deviations (docs/PHASE10.md slice 1): the dump is STREAMED
+  (generator → StreamedResponse) instead of buffered in memory; rows
+  read in deterministic PK order; SQL NULL renders as NULL (legacy
+  wrote ''); strings escape only single quotes (legacy's addslashes
+  corrupted backslash literals); a short comment header identifies the
+  file. Filename keeps the legacy pattern
+  `Backup_{database}_{d-m-Y}.sql`.
+- Suite Phase10BackupTest (7 tests, hermetic, read-only): gates, screen,
+  full download content, escaping round-trip, business dump mapping +
+  row counts. Full suite after the slice: 199 passed / 1 skipped,
+  3,170 assertions.
+
+## Phase 10 remaining slices
+
+Slice 2 (audit screen over the port's audit_logs), slice 3 (QR code
+subsystem — net-new tables, arrival-flow generator, legacy code format)
+and slice 4 (admin dashboard completion) are surveyed in docs/PHASE10.md
+and pending.
