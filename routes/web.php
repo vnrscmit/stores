@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
 use App\Http\Controllers\Arrival\ArrivalController;
 use App\Http\Controllers\Arrival\ItemTransferController;
+use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
@@ -297,6 +298,15 @@ Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/backup')->name('a
     Route::get('/', [BackupController::class, 'index'])->name('index');
     Route::get('/download', [BackupController::class, 'download'])->name('download');
     Route::get('/download/business', [BackupController::class, 'downloadBusiness'])->name('download-business');
+});
+
+// Audit trail (Phase 10 slice 2): the legacy "audit trail" was a
+// developer debug page (audit_trail_debug.php) over QR tables that never
+// existed; this screen reads the port's own audit_logs, populated by
+// App\Support\Audit on every master change, approval and posting.
+Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('audit')->name('audit.')->group(function () {
+    Route::get('/', [AuditTrailController::class, 'index'])->name('index');
+    Route::get('/entries/{audit}', [AuditTrailController::class, 'show'])->whereNumber('audit')->name('show');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

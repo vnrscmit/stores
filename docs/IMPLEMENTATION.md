@@ -416,9 +416,22 @@ the admin dashboard card "Database backup":
   row counts. Full suite after the slice: 199 passed / 1 skipped,
   3,170 assertions.
 
+The **audit trail module** (Phase 10 slice 2) is ported as
+`AuditTrailController` over `audit.*` routes (`role:viewer,admin`) with
+the admin dashboard card "Audit trail": a paginated newest-first
+filterable listing (module/action/user/date range) over the port's own
+`audit_logs` — there is no legacy screen to mirror (the legacy
+"audit trail" was a developer debug page over QR tables that never
+existed; docs/PHASE10.md 2.5). Includes a counts-by-action summary and
+a per-entry detail view rendering the before/after snapshots. Also
+fixed here: the provider's morphMap had un-imported ::class references
+and lacked the Phase 9 movement models, so audit record types now
+render as readable aliases. Suite Phase10AuditTest (8 tests, hermetic
+via a swept test-module prefix). Full suite after the slice: 207
+passed / 1 skipped, 3,207 assertions.
+
 ## Phase 10 remaining slices
 
-Slice 2 (audit screen over the port's audit_logs), slice 3 (QR code
-subsystem — net-new tables, arrival-flow generator, legacy code format)
-and slice 4 (admin dashboard completion) are surveyed in docs/PHASE10.md
-and pending.
+Slice 3 (QR code subsystem — net-new tables, arrival-flow generator,
+legacy code format) and slice 4 (admin dashboard completion) are
+surveyed in docs/PHASE10.md and pending.

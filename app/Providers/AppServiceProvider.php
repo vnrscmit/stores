@@ -2,16 +2,32 @@
 
 namespace App\Providers;
 
+use App\Models\Arrival;
+use App\Models\ArrivalItem;
+use App\Models\ArrivalSloc;
 use App\Models\Bin;
 use App\Models\Captive;
 use App\Models\CaptiveItem;
+use App\Models\CaptiveSloc;
 use App\Models\Classification;
+use App\Models\Discard;
+use App\Models\DiscardItem;
+use App\Models\DiscardSloc;
+use App\Models\Dtog;
+use App\Models\DtogItem;
 use App\Models\EIndent;
 use App\Models\EIndentItem;
+use App\Models\Excess;
+use App\Models\ExcessItem;
+use App\Models\Gtod;
+use App\Models\GtodItem;
 use App\Models\Issue;
 use App\Models\IssueItem;
+use App\Models\IssueSloc;
 use App\Models\IssueType;
 use App\Models\Item;
+use App\Models\ItemTransfer;
+use App\Models\ItemTransferItem;
 use App\Models\Party;
 use App\Models\SubBin;
 use App\Models\User;
@@ -41,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('post-transactions', fn ($user) => in_array($user->role, ['operator', 'admin'], true));
         Gate::define('raise-indents', fn ($user) => in_array($user->role, ['eindent', 'admin'], true));
         Gate::define('view-reports', fn ($user) => in_array($user->role, ['viewer', 'operator', 'admin'], true));
+        Gate::define('viewAuditTrail', fn ($user) => in_array($user->role, ['viewer', 'admin'], true));
 
         // Prevent any user from listing other users (IDOR hardening).
         Gate::define('viewAny', fn ($user) => $user->role === 'admin');
@@ -64,6 +81,20 @@ class AppServiceProvider extends ServiceProvider
             'captive_items' => CaptiveItem::class,
             'captive_slocs' => CaptiveSloc::class,
             'issue_slocs' => IssueSloc::class,
+            'arrivals' => Arrival::class,
+            'arrival_items' => ArrivalItem::class,
+            'arrival_slocs' => ArrivalSloc::class,
+            'gtods' => Gtod::class,
+            'gtod_items' => GtodItem::class,
+            'dtogs' => Dtog::class,
+            'dtog_items' => DtogItem::class,
+            'discards' => Discard::class,
+            'discard_slocs' => DiscardSloc::class,
+            'discard_items' => DiscardItem::class,
+            'excesses' => Excess::class,
+            'excess_items' => ExcessItem::class,
+            'item_transfers' => ItemTransfer::class,
+            'item_transfer_items' => ItemTransferItem::class,
         ]);
     }
 }

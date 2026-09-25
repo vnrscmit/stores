@@ -168,16 +168,30 @@ separately. Rationale for scope decisions at the end.
   matching the live DB). Full suite after the slice: 199 passed /
   1 skipped, 3,170 assertions.
 
-### Slice 2 — Audit trail screen (viewer)
+### Slice 2 — Audit trail screen (viewer + admin) — DONE
 
-- `AuditTrailController` (`role:viewer,admin`): paginated, filterable
-  (module, action, user, date range) listing over the port's existing
-  `audit_logs` table (already populated by every module's
-  `Audit::log` calls since slice 1 of Phase 9).
-- Admin dashboard card "Audit trail". No legacy screen to mirror — this
-  is the additive module the port already anticipated; the legacy
-  debug screen's ideas (recent-first, action counts) inform the view.
-- Suite: gate, listing, filters, pagination.
+- `AuditTrailController` over `audit.*` routes (`role:viewer,admin`)
+  with the admin dashboard card "Audit trail": paginated (20/page)
+  newest-first listing over the port's `audit_logs` (populated by every
+  module's `Audit::log` calls since slice 1 of Phase 9), filterable by
+  module (options collected from the present data), action, user login
+  (LIKE) and inclusive date range; a counts-by-action summary under the
+  current filter (legacy debug screen's section 2, minus its hardcoded
+  action list); a per-entry detail view rendering the before/after
+  snapshots as pretty JSON.
+- Also fixed here (needed to make the trail readable): the provider's
+  `Relation::morphMap` had un-imported `::class` references (Captive
+  Sloc/IssueSloc silently resolved to wrong aliases) and lacked every
+  Phase 9 movement model — gtods/dtogs/discards/excesses/item_transfers
+  (+ their item/sloc twins) are now mapped, so audit record types
+  render as readable table aliases instead of FQCNs.
+- Suite: `Phase10AuditTest` (8 tests, hermetic — the suite writes its
+  own rows through the port's writer under a swept test-module prefix):
+  guest bounce, operator/eindent bounce home, viewer+admin access,
+  newest-first ordering, all four filters, the counts summary under
+  the filter, the detail view's snapshot rendering, and the morph-alias
+  readability. Full suite after the slice: 207 passed / 1 skipped,
+  3,207 assertions.
 
 ### Slice 3 — QR code subsystem (arrival-side)
 

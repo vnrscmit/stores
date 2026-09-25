@@ -64,6 +64,7 @@ class DashboardController extends Controller
             ['label' => 'e-Indent Approvals', 'url' => route('eindents.approvals'), 'desc' => 'Approve or return submitted indents'],
             ['label' => 'Reports', 'url' => route('viewer.reports.index'), 'desc' => 'Stock, ledger and movement reports'],
             ['label' => 'Database backup', 'url' => route('admin.backup.index'), 'desc' => 'Download a full SQL dump of the database'],
+            ['label' => 'Audit trail', 'url' => route('audit.index'), 'desc' => 'Who changed what, and when'],
         ];
     }
 }
