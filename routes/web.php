@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
 use App\Http\Controllers\Arrival\ArrivalController;
 use App\Http\Controllers\Arrival\ItemTransferController;
+use App\Http\Controllers\Arrival\QrCodeController;
 use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -188,6 +189,18 @@ foreach (ArrivalTypes::all() as $arrivalType) {
             Route::put('/workspace/{arrival}/header', [ArrivalController::class, 'updateHeader'])->whereNumber('arrival')->name('header.update');
             Route::post('/workspace/{arrival}/post', [ArrivalController::class, 'post'])->whereNumber('arrival')->name('post');
             Route::get('/print/{arrival}', [ArrivalController::class, 'show'])->whereNumber('arrival')->name('show');
+
+            // QR generation (Phase 10 slice 3): the legacy operator menu's
+            // "Generate QR Code" link was DEAD (utility/generate_qrcodes.php
+            // does not exist); the real popup belongs to the arrival flow.
+            Route::get('/qr', [QrCodeController::class, 'form'])->name('qr.form');
+            Route::post('/qr', [QrCodeController::class, 'save'])->name('qr.save');
+            Route::post('/qr/print', [QrCodeController::class, 'print'])->name('qr.print');
+            Route::get('/workspace/{arrival}/qr/{line}', [QrCodeController::class, 'form'])
+                ->whereNumber(['arrival', 'line'])->name('qr.form-linked');
+            Route::post('/workspace/{arrival}/qr/{line}', [QrCodeController::class, 'save'])
+                ->whereNumber(['arrival', 'line'])->name('qr.save-linked');
+            Route::get('/lines/{line}/codes', [QrCodeController::class, 'codes'])->whereNumber('line')->name('qr.codes');
         });
 }
 

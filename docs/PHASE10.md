@@ -193,7 +193,40 @@ separately. Rationale for scope decisions at the end.
   readability. Full suite after the slice: 207 passed / 1 skipped,
   3,207 assertions.
 
-### Slice 3 — QR code subsystem (arrival-side)
+### Slice 3 — QR code subsystem (arrival-side) — DONE
+
+- Migration `000054` creates `qr_codes` (column set reconstructed verbatim
+  from the legacy INSERTs), `qr_scan_logs` + `qr_item_types` (verbatim
+  setup_qrcode_db.php DDL incl. the 11/12/13 type seeds) and adds the
+  `classification_type` column legacy's code referenced but its live
+  schema lacked. `App\Models\QrCode` / `QrScanLog` mirror them.
+- `App\Support\QrSerial` preserves the code format and continuation:
+  `{plant}{year4}{type2}{serial5}` (D25261100001), plantcode from
+  company_settings id=41 (default 'DEF' — the live legacy table has no
+  plantcode column), yearcode = active year with '-' stripped, type via
+  the verbatim mapping (Roll=11 default, Pouch(es)=12, Sticker(s)=13 —
+  default 11, as legacy effectively ran). The serial continues GLOBALLY
+  per year+type; the legacy racy MAX(RIGHT(text,5)) allocation is
+  replaced by a locked counter (`document_counters` key
+  `qr.{year4}{type2}`) with a peek/consume pair — serial drift between
+  page load and save aborts the save (legacy race made loud).
+- `Arrival\QrCodeController` over the arrivals route group (legacy menu
+  link was dead; the generator is wired into the vendor-arrival
+  workspace per-line as "Generate QR codes", opening in a new tab):
+  `qr.form` (draft mode: classification/item/ups_good, required like
+  legacy) / `qr.form-linked` + `qr.save-linked` (linked mode: arrival +
+  line bound, pair consistency enforced), `qr.save` (draft: purges the
+  user's earlier draft rows for the item first, verbatim save_qr_temp
+  .php; linked: — verbatim quirk — overwrites arrival_items.qty_good
+  with the Σ weights, Σ > 0 only), `qr.print` (POST, A4 2×6 slip grid,
+  12 per page) and `qr.codes`. QRs render LOCALLY as inline SVG via
+  chillerlan/php-qrcode v6 (deliberate deviation: legacy pulled images
+  from api.qrserver.com). Audit module `arrival.qr`.
+- Suite: `Phase10QrCodeTest` (10 tests, hermetic — qr_codes is
+  suite-exclusive and swept whole): format/continuation, draft purge,
+  linked write-back, serial drift abort, parameter guards, mismatched
+  arrival/line pair, form + print rendering, table/type seeds. Full
+  suite after the slice: 217 passed / 1 skipped, 3,250 assertions.
 
 Net-new tables (no legacy tables to migrate — they never existed):
 

@@ -430,8 +430,29 @@ render as readable aliases. Suite Phase10AuditTest (8 tests, hermetic
 via a swept test-module prefix). Full suite after the slice: 207
 passed / 1 skipped, 3,207 assertions.
 
+The **QR code subsystem** (Phase 10 slice 3) is ported over the net-new
+`qr_codes`/`qr_scan_logs`/`qr_item_types` tables (the legacy subsystem
+never went live — no QR tables exist in the legacy DB; docs/PHASE10.md
+2.4/2.5) as `Arrival\QrCodeController` wired into the vendor-arrival
+workspace (the legacy operator menu link was dead):
+
+- Code format preserved verbatim: `{plant}{year4}{type2}{serial5}`
+  (D25261100001) via `App\Support\QrSerial` — plantcode from
+  company_settings id=41 (default DEF), yearcode = active year minus
+  dash, type 11 Roll / 12 Pouches / 13 Stickers (default 11, as legacy
+  effectively ran), serial continuing GLOBALLY per year+type. The racy
+  legacy MAX allocation is replaced by a locked document_counters
+  counter with peek/consume; serial drift aborts the save.
+- Draft mode purges the user's earlier drafts for the item (verbatim
+  save_qr_temp.php); linked mode — verbatim quirk — overwrites
+  arrival_items.qty_good with the Σ of the weighed codes (Σ > 0 only).
+- A4 print sheet (2×6 grid, 12 per page) with QRs rendered LOCALLY as
+  inline SVG via chillerlan/php-qrcode (deliberate deviation: legacy
+  pulled images from api.qrserver.com). Audit module `arrival.qr`.
+- Suite Phase10QrCodeTest (10 tests, hermetic). Full suite after the
+  slice: 217 passed / 1 skipped, 3,250 assertions.
+
 ## Phase 10 remaining slices
 
-Slice 3 (QR code subsystem — net-new tables, arrival-flow generator,
-legacy code format) and slice 4 (admin dashboard completion) are
-surveyed in docs/PHASE10.md and pending.
+Slice 4 (admin dashboard completion) is surveyed in docs/PHASE10.md and
+pending.

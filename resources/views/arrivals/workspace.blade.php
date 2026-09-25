@@ -60,6 +60,10 @@
                 <span class="muted">Good {{ $line->ups_good }} / {{ $line->qty_good }}</span>
                 <span class="muted">Damage {{ $line->ups_damage }} / {{ $line->qty_damage }}</span>
                 <span class="muted">Ex/Sh {{ $line->exsh_ups }} / {{ $line->exsh_qty }}</span>
+                @if ($type === 'vendor' && (int) $line->ups_good > 0)
+                    <a class="btn secondary" target="_blank"
+                       href="{{ route('arrivals.'.$type.'.qr.form-linked', [$arrival, $line]) }}">Generate QR codes</a>
+                @endif
             </div>
             @if ($state['distributed']->isNotEmpty())
                 <table class="data" style="margin-top:.5rem">
