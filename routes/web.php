@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscardController;
 use App\Http\Controllers\EIndent\EIndentController;
 use App\Http\Controllers\EIndent\IndentItemController;
+use App\Http\Controllers\ExcessShortageController;
 use App\Http\Controllers\Issue\EIssueController;
 use App\Http\Controllers\Issue\EIssueLineController;
 use App\Http\Controllers\Masters\BinController;
@@ -227,6 +228,29 @@ Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('discards')->
     Route::put('/workspace/{discard}/header', [DiscardController::class, 'updateHeader'])->whereNumber('discard')->name('header.update');
     Route::post('/workspace/{discard}/post', [DiscardController::class, 'post'])->whereNumber('discard')->name('post');
     Route::get('/print/{discard}', [DiscardController::class, 'show'])->whereNumber('discard')->name('show');
+});
+
+// Excess/Shortage adjustment (Phase 9 slice 7): stock adjusted up (ES) or
+// down (SH) per ledger row, ledger chosen by the header typ ('good' or
+// 'damage'). Legacy: add_e1.php + add_exsh_preview.php +
+// getuser_exsh_slocshow.php + edit_exsh.php. Rows are addressed by their
+// source ledger row id (excess_items.rowid).
+Route::middleware(['auth', 'fy', 'can:post-transactions'])->prefix('exshorts')->name('exshorts.')->group(function () {
+    Route::get('/', [ExcessShortageController::class, 'index'])->name('index');
+    Route::get('/new', [ExcessShortageController::class, 'create'])->name('create');
+    Route::get('/items/{classification}', [ExcessShortageController::class, 'items'])
+        ->whereNumber('classification')->name('items');
+    Route::get('/availability/{item}', [ExcessShortageController::class, 'availability'])
+        ->whereNumber('item')->name('availability');
+    Route::post('/documents', [ExcessShortageController::class, 'store'])->name('store');
+    Route::get('/workspace/{excess}', [ExcessShortageController::class, 'workspace'])
+        ->whereNumber('excess')->name('workspace');
+    Route::put('/workspace/{excess}/header', [ExcessShortageController::class, 'updateHeader'])
+        ->whereNumber('excess')->name('header.update');
+    Route::post('/workspace/{excess}/post', [ExcessShortageController::class, 'post'])
+        ->whereNumber('excess')->name('post');
+    Route::get('/print/{excess}', [ExcessShortageController::class, 'show'])
+        ->whereNumber('excess')->name('show');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

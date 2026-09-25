@@ -28,7 +28,8 @@ class DashboardController extends Controller
                 ['label' => 'Internal Return to Stores', 'url' => route('arrivals.internal.index'), 'desc' => 'Return issued stock from a stage back to stores'],
                 ['label' => 'Inter Item Transfer', 'url' => route('itransfers.index'), 'desc' => 'Convert source item stock into destination items (ITI/ITA)'],
                 ['label' => 'Material Discard', 'url' => route('discards.index'), 'desc' => 'Discard damaged stock out of the damage ledger (MD)'],
-                ['label' => 'Adjustments', 'url' => '#', 'desc' => 'Discard, excess/shortage, gate movements'],
+                ['label' => 'Excess / Shortage', 'url' => route('exshorts.index'), 'desc' => 'Adjust stock up (ES) or down (SH) per SLOC'],
+                ['label' => 'Gate movements', 'url' => '#', 'desc' => 'Gate pass movements (G2D / D2G)'],
             ],
         ]);
     }

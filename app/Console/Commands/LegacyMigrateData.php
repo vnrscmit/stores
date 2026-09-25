@@ -326,6 +326,7 @@ class LegacyMigrateData extends Command
             // year's serials.
             ['gatepass', 'gate_passes', 'yearcode', 'gpcode', null],
             ['excess', 'excesses', 'yearcode', 'escode', null],
+            ['excess.n', 'excesses', 'yearcode', 'ncode', null],
             ['sloc', 'slocs', 'yearcode', 'scode', null],
             ['iitr', 'item_transfers', 'yearcode', 'iitr_code', null],
             ['dtog', 'dtogs', 'yearcode', 'dcode', null],

@@ -1,4 +1,4 @@
-# Phase 9 — Arrivals family (vendor GRN, stock transfer in, internal return, ITI/ITA) + Material Discard
+# Phase 9 — Arrivals family (vendor GRN, stock transfer in, internal return, ITI/ITA) + Material Discard + Excess/Shortage
 
 Survey of the legacy sources and the implementation plan. No code written yet.
 
@@ -13,6 +13,7 @@ Four inbound-movement modules, one phase:
 | Internal return | `add_return_stores.php` (+2/22/old variants), `add_return_stores_preview.php` (posting), `add_returnd_stores*.php` (damage-return variant), `getuser_imroupdateform.php` / `getuser_imroeditsubupdate.php` / `getuser_imrodeditsubupdate.php` (line CRUD incl. the `tblarrival` header insert) | same |
 | Inter-item transfer (ITI/ITA) | `add_interitem.php` (1,418 ln workspace), `add_iitr_preview.php` (posting) | `item_transfers`, `item_transfer_items` |
 | Material Discard (MD) | `add_material_discard.php` (1,329 ln workspace), `add_discard.php` (queue/home), `add_discard_str_preview.php` (posting), `add_discard_str_view.php`, `getuser_discard3.php` (line save), `getuser_discard_slocshow.php` (damage availability) | `discards`, `discard_items`, `discard_slocs` |
+| Excess/Shortage (ES) | `add_e.php` / `add_e1.php` (entry + line save), `add_exsh_preview.php` (posting), `add_exsh_view.php`, `edit_exsh.php` (line edit), `getuser_exsh_slocshow.php` (stock availability), `select_es_op.php` (bin status sheet), `add_shortage.php` / `add_shortage1.php` (queue), `es_note_print.php` (note print) | `excesses`, `excess_items` |
 
 The `internal_returns` table (rid/code/rfs/rbd…) is NOT the internal-return
 document store — the live flow stores internal returns as `arrivals` rows
@@ -150,6 +151,50 @@ Posting (verified in add_discard_str_preview.php):
   superseded row at a location (a later row exists) is never listed
   even when its stored balance is positive.
 
+### 2.6 Excess/Shortage ES (add_e1.php + add_exsh_preview.php + getuser_exsh_slocshow.php)
+
+Document = `tbl_excess` (→ excesses: tid, code [draft serial], tdate,
+classification_id, items_id, uom, remarks, yearcode, ups/qty [totals],
+typ 'good'|'damage', esflg, escode, ncode) with per-ledger-row rows
+`tbl_excess_sub` (→ excess_items: essubid, esid → tid, whid/binid/
+subbinid [copied from the referenced row], qtyex/upsex, qtysh/upssh,
+balups/balqty [client-shown post balance], rowid → stlg_id/stld_id).
+
+One document adjusts ONE item at one or more SLOCs, in the ledger the
+header `typ` selects (the whole document is good OR damage):
+- Availability (getuser_exsh_slocshow.php): selectable rows = MAX
+  (stlg_id/stld_id) per item×location with balqty > 0 ON THAT ROW; each
+  row carries an excess pair and a shortage pair — the legacy JS empties
+  one pair when the other is filled (upschk/upschk1), so a row adjusts
+  up (ES) or down (SH), never both.
+- Posting (add_exsh_preview.php frm_action=submit), per excess_items
+  row: ONE ledger row in the header's ledger, trtype **'ES'**, trid =
+  tid, trdate = tdate, op = the referenced row's balance, **no party
+  id** (stlg_trpartyid NULL on all legacy ES rows), and
+  - excess side (upsex/qtyex present): subtype **'ES'**, bal = op + ex;
+  - shortage side (else): subtype **'SH'**, bal = op − sh. (The legacy
+    branch keys on upse==0 && qtye==0 — a row with BOTH sides empty
+    posts a shortage of 0/0. Preserved.)
+- **NO sub-bin status flip** — the legacy ES writer never touches
+  tbl_subbin (verified: a full drain leaves the sub-bin status alone).
+- **NO UPS normalization** — the raw bal values were inserted into
+  UNSIGNED columns; the port clamps to 0 the way the columns silently
+  did, and bounds the shortage with a server-side balance check (the
+  legacy UI checked in JS only).
+- Reorder pass (verbatim): once per document, when the item is
+  srl-tracked and its summed positive good-ledger balance drops to/
+  below `srl`, all positive rows are flagged orstatus='R' (the
+  class-scoped legacy query degenerates to the item sum — same
+  documented semantics as applyReorderFlag).
+- Commit: escode = MAX+1 per yearcode ('excess' counter), ncode =
+  MAX+1 per yearcode ('excess.n'), esflg = 1. No gate pass. Draft
+  `code` = MAX+1 per yearcode at creation (add_e1.php).
+- Legacy quirks handled deliberately: the queue screen (add_shortage
+  .php) DELETED every esflg=0 document on page load — the port keeps
+  open workspaces with edit_exsh.php's delete-and-reinsert semantics;
+  the bin status sheet (select_es_op.php) filtered subtype='ES' and hid
+  shortage rows — the port lists both sides.
+
 ## 3. Laravel-side reuse (verified present)
 
 - `StockLedgerService::post(array $p)` — direction in/out, `damage` flag,
@@ -225,6 +270,20 @@ Posting (verified in add_discard_str_preview.php):
    Suite: `Phase9DiscardTest` (13 tests, hermetic, sweeps discard
    artifacts incl. the trid=0 seed rows; differential counter
    assertions primed via DocumentNumber::prime).
+7. **Excess/Shortage slice** — DONE: `ExcessShortageController` routes
+   under `exshorts.*` (index/create/items/availability/store/workspace/
+   header.update/post/show) with the operator card replacing the
+   placeholder Adjustments entry; stockRowsFor() implements the
+   getuser_exsh_slocshow semantics for both ledgers; post() = one ES or
+   SH row per excess_items row (side per row, verbatim math, no
+   sub-bin flip, no UPS normalization), transactional + idempotent,
+   escode/ncode counters, esflg = 1, audit module `adjustment.es`.
+   Also added here: `excess.n` + `excess.draft` counter seeds
+   (DocumentNumber::PREFIXES already carried 'excess' => 'TES').
+   Suite: `Phase9ExcessShortageTest` (14 tests, hermetic, sweeps ES
+   artifacts in both ledgers incl. the negative-trid seed rows; the
+   stocked-item helpers exclude srl-tracked items so the reorder pass
+   can never re-flag migrated rows).
 6. **Test suites** — `tests/Feature/Phase9ArrivalsTest.php` (hermetic,
    pipeline-gated like Phase 6/7): auth/role gates, FY gate, vendor
    good-only / damage-only / mixed-sloc happy paths (assert both ledgers,

@@ -327,3 +327,32 @@ The **Material Discard adjustment module** (Phase 9 slice 6) is ported as
 - Audit module `discard.md`; suite Phase9DiscardTest (13 tests, hermetic,
   sweeps discard artifacts incl. trid=0 seed rows). Full suite after the
   slice: 163 passed / 1 skipped, 2,875 assertions.
+
+The **Excess/Shortage adjustment module** (Phase 9 slice 7) is ported as
+`ExcessShortageController` under `exshorts.*` with the operator card
+replacing the placeholder Adjustments entry:
+
+- One document adjusts ONE item at one or more SLOCs in the ledger the
+  header `typ` selects ('good' or 'damage'); rows are selected from the
+  latest positive ledger row per item×location (getuser_exsh_slocshow
+  semantics for both ledgers) and each carries an excess pair OR a
+  shortage pair — never both (server-side guard; the legacy UI enforced
+  it in JS only).
+- Post: one transactional idempotent pass — one ledger row per
+  excess_items row (trtype 'ES', subtype 'ES' with bal = op + ex or 'SH'
+  with bal = op − sh, trid = tid, no party id), the referenced row
+  re-resolved against the live latest row, **no sub-bin status flip**
+  (the legacy ES writer never touches tbl_subbin) and **no UPS
+  normalization** (raw legacy math, shortage bounded by the row's
+  balance), the class-scoped reorder pass, escode/ncode counters,
+  esflg = 1, no gate pass.
+- Deliberate deviations (documented in docs/PHASE9.md §2.6): the legacy
+  queue screen deleted every unposted ES document on page load — the
+  port keeps open workspaces with edit_exsh.php's delete-and-reinsert
+  semantics; the legacy bin status sheet filtered subtype='ES' and hid
+  shortage rows — the port lists both sides.
+- Counters: `excess` (TES, already seeded) plus new `excess.n` and
+  `excess.draft` seeds; audit module `adjustment.es`; suite
+  Phase9ExcessShortageTest (14 tests, hermetic, sweeps ES artifacts in
+  both ledgers). Full suite after the slice: 177 passed / 1 skipped,
+  2,967 assertions.
