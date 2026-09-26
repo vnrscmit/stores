@@ -7,6 +7,9 @@ settings, caches, scheduled tasks and rollback. Ordered by value.
 
 ## Phase 11 — admin master completion (the three audit gaps)
 
+All three gaps are settled (slices 1–2 built, 3 an evidence-backed
+skip) — Phase 11 is complete.
+
 1. **User CRUD** ✅ done (Phase 11 slice 1): create/edit accounts with
    the legacy vocabulary — role, security Q&A, duplicate login/email
    checks (add_operator/add_indentrole.php), Active/Suspend already
@@ -14,8 +17,12 @@ settings, caches, scheduled tasks and rollback. Ordered by value.
 2. **Company profile editor** ✅ done (Phase 11 slice 2): single-row
    form over `company_settings` (plant code feeds QR serials; address/
    licence feed printed docs), plus the `plantcode` column fix.
-3. **Country/state masters** or an explicit documented skip: tables
-   exist, legacy screens were bare-bones and near-unused.
+3. **Country/state masters** ✅ settled as an explicit skip (evidence
+   in docs/COVERAGE_AUDIT.md): the legacy screens were menu-orphaned,
+   the data near-empty (1 country / 0 states) and no consumer depends
+   on the tables; the port's party form already covers the loose
+   string behavior. If dropdowns are ever wanted, seed
+   `countries`/`states` and switch the party-form inputs.
 
 ## Hardening
 

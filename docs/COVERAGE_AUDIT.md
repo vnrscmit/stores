@@ -61,10 +61,31 @@ Plus the role dashboards (`index.php`, `indexopr.php`, `indexview.php`,
    the legacy schema never actually stored (see
    docs/IMPLEMENTATION.md). The editor also fixed a latent QR bug:
    QrSerial read the multi-line plant address as the code prefix.
-3. **Country/state masters** — `add_country.php`, `add_state.php`
-   (`tbl_country`/`tbl_state` → `countries`/`states`). Tables migrated
-   (`countries` has rows; `states` is empty); no screens. Legacy kept
-   them barely populated; party master does not depend on them.
+3. **Country/state masters — explicitly SKIPPED (settled 2026-09-26)** —
+   `add_country.php`, `add_state.php`, `edit_*`, `home_country.php`,
+   `home_state.php` over `tbl_country`/`tbl_state` (now
+   `countries`/`states`). The evidence says these screens were already
+   dead in legacy:
+
+   - **Menu-orphaned**: `include/menu.js` — the only menu definition —
+     links none of them; the closest menu entry is
+     `regionmaster_home.php`, a file that does not exist anywhere in
+     the legacy tree. No nav path reaches these screens; the only
+     inbound links are each other's (home ↔ add/edit).
+   - **Near-empty data**: the live legacy rows migrated to 1 country
+     (India) and 0 states; nothing wrote to them in production.
+   - **The one consumer used them loosely**: the party form populated
+     its country `<select>` with `SELECT DISTINCT country FROM
+     tbl_country` (add_party_master.php:552) but `state` was free
+     text and the country was stored as a plain string on the party
+     row — no FK in either direction.
+
+   Porting them would re-introduce maintenance surface for screens no
+   user flow can reach and no business logic depends on. The port's
+   party form already covers the actual legacy behavior (country
+   pre-filled 'India', free-text state). If a future party-form
+   upgrade wants dropdowns, seed `countries`/`states` and switch the
+   inputs — the models and migrated tables are already there.
 4. **Dead/absent legacy screens, intentionally not ported** —
    `regionmaster_home.php` (menu link to a file that doesn't exist),
    `qrcode_recovery.php` (0 bytes), `setup_qrcode_db.php` (runtime DDL,
@@ -74,8 +95,9 @@ Plus the role dashboards (`index.php`, `indexopr.php`, `indexview.php`,
 ## 4. Verdict
 
 Every reachable legacy *business* screen has a port counterpart with
-suite coverage. The gaps are three small admin CRUD screens (users,
-company profile, country/state) — none affect transactions, ledgers or
-reports. Together they'd form a natural "Phase 11: admin master
-completion" slice (estimate: the users CRUD is the only non-trivial
-one).
+suite coverage. Of the three admin CRUD gaps, two are closed in
+Phase 11 (slices 1–2: user accounts, company profile) and one is an
+explicit, evidence-backed skip (country/state — see gap 3): no menu
+path reached those screens in legacy, no consumer depends on the
+tables, and the party form already reproduces the loose string-based
+behavior legacy actually exhibited.
