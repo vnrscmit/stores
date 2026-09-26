@@ -331,6 +331,10 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('audit')->name('a
 // (close + open the successor yearsid+1).
 Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/users')->name('admin.users.')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('index');
+    Route::get('/create', [UserController::class, 'create'])->name('create');
+    Route::post('/', [UserController::class, 'store'])->name('store');
+    Route::get('/{user}/edit', [UserController::class, 'edit'])->whereNumber('user')->name('edit');
+    Route::put('/{user}', [UserController::class, 'update'])->whereNumber('user')->name('update');
     Route::post('/{user}/toggle', [UserController::class, 'toggle'])->whereNumber('user')->name('toggle');
 });
 

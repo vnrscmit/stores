@@ -12,6 +12,10 @@
         this screen.
     </p>
 
+    <p>
+        <a class="btn" href="{{ route('admin.users.create') }}">New account</a>
+    </p>
+
     <table class="data">
         <thead>
         <tr>
@@ -33,6 +37,7 @@
                 <td>{{ $user->legacy_id ?? '—' }} {{ $user->legacy_source ? "({$user->legacy_source})" : '' }}</td>
                 <td>
                     @if ($user->role !== 'admin' && $user->getKey() !== auth()->id())
+                        <a class="btn secondary" href="{{ route('admin.users.edit', $user) }}">Edit</a>
                         <form method="POST" action="{{ route('admin.users.toggle', $user) }}" style="display:inline">
                             @csrf
                             <button class="btn secondary" type="submit">
@@ -42,6 +47,7 @@
                     @elseif ($user->role === 'admin')
                         <span class="muted">admin</span>
                     @else
+                        <a class="btn secondary" href="{{ route('admin.users.edit', $user) }}">Edit</a>
                         <span class="muted">you</span>
                     @endif
                 </td>

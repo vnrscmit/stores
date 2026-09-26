@@ -7,10 +7,10 @@ settings, caches, scheduled tasks and rollback. Ordered by value.
 
 ## Phase 11 — admin master completion (the three audit gaps)
 
-1. **User CRUD** (highest value): create/edit accounts with the legacy
-   vocabulary — role, security Q&A, duplicate login/email checks
-   (add_operator/add_indentrole.php), Active/Suspend already present.
-   Makes the admin self-sufficient (no SQL access needed to onboard).
+1. **User CRUD** ✅ done (Phase 11 slice 1): create/edit accounts with
+   the legacy vocabulary — role, security Q&A, duplicate login/email
+   checks (add_operator/add_indentrole.php), Active/Suspend already
+   present. The admin can onboard without DB access.
 2. **Company profile editor**: single-row form over `company_settings`
    (plant code feeds QR serials; address/licence feed printed docs).
 3. **Country/state masters** or an explicit documented skip: tables

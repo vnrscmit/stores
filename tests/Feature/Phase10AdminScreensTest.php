@@ -8,6 +8,7 @@ use App\Models\FinancialYear;
 use App\Models\User;
 use App\Support\FiscalYear;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -16,6 +17,13 @@ use Tests\TestCase;
  * Users & Roles (the listing side of legacy add_operator.php /
  * add_viewer.php, Suspend blocking login) and Year Setting (the
  * tblyears state machine of current_year.php + closeyear.php).
+ *
+ * Phase 11 slice 1 extends the suite with the create/edit side of
+ * the legacy account screens (add_operator.php / add_viewer.php /
+ * add_indentrole.php / edit_*.php / adminprofile.php): the legacy
+ * vocabulary (role, Active/Suspend, the five fixed security
+ * questions), the per-role code series, the duplicate checks and
+ * the non-case-sensitive security answers.
  *
  * Semantics under test:
  *  - users listing (roles/status vocabulary) + the Suspend/Activate
@@ -267,6 +275,229 @@ class Phase10AdminScreensTest extends TestCase
         $this->get(route('admin.years.index'))->assertRedirect(route('operator.home'));
         $this->post(route('admin.years.activate', ['yearsid' => 1]))->assertRedirect(route('operator.home'));
         $this->post(route('admin.years.close'))->assertRedirect(route('operator.home'));
+    }
+
+    public function test_create_screen_renders_legacy_vocabulary(): void
+    {
+        $this->admin();
+
+        $this->get(route('admin.users.create'))
+            ->assertOk()
+            ->assertSee('New account')
+            ->assertSee('What is the name of your first school?')
+            ->assertSee('non-case-sensitive');
+    }
+
+    public function test_store_creates_account_with_role_code_and_hashed_secret(): void
+    {
+        $admin = $this->admin();
+
+        $before = User::query()->where('role', 'operator')->get()
+            ->map(fn (User $u) => (int) preg_replace('/\D/', '', (string) $u->code))->max();
+
+        try {
+            $this->post(route('admin.users.store'), [
+                'name' => 'TEST Name',
+                'login' => $login = 'TEST-CREATE-'.uniqid(),
+                'password' => 'secret1',
+                'email' => $login.'@example.com',
+                'role' => 'operator',
+                'status' => 'Active',
+                'question' => "What is your mother's maiden name?",
+                'answer' => '  Maiden  ',
+            ])->assertRedirect(route('admin.users.index'));
+
+            $user = User::query()->where('login', $login)->firstOrFail();
+            $this->assertSame('TEST Name', $user->name);
+            $this->assertSame('Active', $user->status);
+            $this->assertSame("What is your mother's maiden name?", $user->question);
+
+            // Bare-number series continued per role (data truth), stored
+            // as legacy's display code OP{n}.
+            $this->assertSame('OP'.($before + 1), (string) $user->code);
+
+            // Password bcrypt ('hashed' cast); the answer bcrypt of the
+            // lowercased trim and verifies non-case-sensitively.
+            $this->assertNotSame('secret1', $user->password);
+            $this->assertTrue(Hash::check('secret1', $user->password));
+            $this->assertNotSame('maiden', $user->answer);
+            $this->assertTrue(Hash::check('maiden', $user->answer));
+
+            // Audit row for the create.
+            $this->assertDatabaseHas('audit_logs', [
+                'module' => 'admin.users', 'action' => 'create',
+                'record_type' => 'users', 'record_id' => $user->getKey(),
+                'user_id' => $admin->getKey(),
+            ]);
+
+            $user->delete();
+        } finally {
+            User::query()->where('login', 'like', 'TEST-CREATE-%')->delete();
+        }
+    }
+
+    public function test_store_rejects_duplicate_login_email_and_bad_role(): void
+    {
+        $this->admin();
+
+        $existing = User::query()->where('role', 'operator')->firstOrFail();
+
+        // Duplicate login (legacy's "Duplicate not allowed.").
+        $this->from(route('admin.users.create'))
+            ->post(route('admin.users.store'), [
+                'name' => 'TEST Dup',
+                'login' => $existing->login,
+                'password' => 'secret1',
+                'email' => 'TEST-DUP-'.uniqid().'@example.com',
+                'role' => 'operator',
+                'status' => 'Active',
+            ])
+            ->assertRedirect(route('admin.users.create'))
+            ->assertSessionHasErrors('login');
+
+        // Duplicate e-mail.
+        $this->post(route('admin.users.store'), [
+            'name' => 'TEST Dup',
+            'login' => 'TEST-DUP-'.uniqid(),
+            'password' => 'secret1',
+            'email' => $existing->email,
+            'role' => 'operator',
+            'status' => 'Active',
+        ])->assertSessionHasErrors('email');
+
+        // Role outside the legacy vocabulary.
+        $this->post(route('admin.users.store'), [
+            'name' => 'TEST Dup',
+            'login' => 'TEST-DUP-'.uniqid(),
+            'password' => 'secret1',
+            'email' => 'TEST-DUP-'.uniqid().'@example.com',
+            'role' => 'superadmin',
+            'status' => 'Active',
+        ])->assertSessionHasErrors('role');
+
+        $this->assertSame(0, User::query()->where('name', 'TEST Dup')->count());
+    }
+
+    public function test_store_requires_question_and_answer_together(): void
+    {
+        $this->admin();
+
+        // A question without an answer stores neither (the forgot-
+        // password flow requires both to be set).
+        $this->post(route('admin.users.store'), [
+            'name' => 'TEST QA',
+            'login' => 'TEST-QA-'.uniqid(),
+            'password' => 'secret1',
+            'email' => 'TEST-QA-'.uniqid().'@example.com',
+            'role' => 'viewer',
+            'status' => 'Active',
+            'question' => 'What is your nick name?',
+        ])->assertSessionHasErrors('answer');
+
+        $this->assertSame(0, User::query()->where('name', 'TEST QA')->count());
+    }
+
+    public function test_edit_updates_profile_password_and_qa(): void
+    {
+        $this->admin();
+
+        $user = User::query()->create([
+            'login' => 'TEST-EDIT-'.uniqid(),
+            'password' => 'oldpass1',
+            'role' => 'operator',
+            'name' => 'TEST Edit',
+            'email' => 'TEST-EDIT-'.uniqid().'@example.com',
+            'status' => 'Active',
+            'code' => 'OPTEST',
+        ]);
+
+        $oldHash = $user->password;
+
+        try {
+            $this->put(route('admin.users.update', $user), [
+                'login' => $user->login,
+                'name' => 'TEST Edit 2',
+                'email' => $user->email,
+                'password' => '', // blank keeps the current password
+                'status' => 'Suspend',
+                'role' => $user->role,
+                'question' => 'Which is your favourite vegetable?',
+                'answer' => '  Baingan ',
+            ])->assertRedirect(route('admin.users.index'));
+
+            $user->refresh();
+            $this->assertSame('TEST Edit 2', $user->name);
+            $this->assertSame('Suspend', $user->status);
+            $this->assertSame($oldHash, $user->password); // untouched
+            $this->assertSame('Which is your favourite vegetable?', $user->question);
+            // bcrypt stores the lowercased trim; legacy's non-case-
+            // sensitivity lives in the reset contract (adminprofile.php
+            // advertised answers as "Non-Case Sensitive").
+            $this->assertTrue(Hash::check('baingan', $user->answer));
+
+            // The reset flow is guest-only — drop the admin session.
+            $this->post('/logout');
+
+            $this->post(route('password.verify'), [
+                'login' => $user->login,
+                'answer' => 'BAINGAN',
+            ])->assertRedirect(route('password.reset'));
+
+            // Migrated rows keep legacy plaintext answers; the contract
+            // stays case-insensitive on them (strcasecmp parity).
+            $user->answer = ' Verbatim ';
+            $user->save();
+            $this->post(route('password.verify'), [
+                'login' => $user->login,
+                'answer' => 'vErBaTiM',
+            ])->assertRedirect(route('password.reset'));
+
+            // The login ID cannot drift to a duplicate; the role is fixed.
+            // (Re-authenticate: the reset-flow visit logged the admin out.)
+            $this->admin();
+            $this->put(route('admin.users.update', $user), [
+                'login' => $user->login,
+                'name' => $user->name,
+                'email' => $user->email,
+                'status' => 'Active',
+                'role' => 'viewer',
+            ])->assertSessionHasErrors('role');
+            $this->assertSame('operator', $user->refresh()->role);
+        } finally {
+            $user->delete();
+        }
+    }
+
+    public function test_admin_accounts_are_not_editable(): void
+    {
+        $this->admin();
+
+        $admin = User::query()->where('role', 'admin')->firstOrFail();
+
+        $this->get(route('admin.users.edit', $admin))->assertStatus(422);
+
+        $this->put(route('admin.users.update', $admin), [
+            'login' => $admin->login,
+            'name' => 'TEST Hack',
+            'email' => $admin->email,
+            'status' => 'Suspend',
+            'role' => 'admin',
+        ])->assertStatus(422);
+
+        $this->assertNotSame('TEST Hack', $admin->refresh()->name);
+    }
+
+    public function test_account_actions_require_admin(): void
+    {
+        $operator = User::query()->where('role', 'operator')->firstOrFail();
+        $this->actingAs($operator);
+
+        $target = User::query()->where('role', 'operator')->whereKeyNot($operator->getKey())->firstOrFail();
+
+        $this->get(route('admin.users.create'))->assertRedirect(route('operator.home'));
+        $this->post(route('admin.users.store'), ['name' => 'X'])->assertRedirect(route('operator.home'));
+        $this->get(route('admin.users.edit', $target))->assertRedirect(route('operator.home'));
+        $this->put(route('admin.users.update', $target), ['name' => 'X'])->assertRedirect(route('operator.home'));
     }
 
     protected function tearDown(): void

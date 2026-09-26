@@ -47,10 +47,12 @@ Plus the role dashboards (`index.php`, `indexopr.php`, `indexview.php`,
 1. **User creation/edit screens** — legacy `add_operator.php`,
    `add_viewer.php`, `add_indentrole.php`, `edit_indentrole.php` create
    and edit accounts (with duplicate login/email checks and security
-   question). The port deliberately consolidated identity into `users`;
+   question). ~~The port deliberately consolidated identity into `users`;
    account creation currently happens outside the app (SQL/seed) and
-   `admin.users` is oversight-only. **Highest-value gap** if the
-   admin must onboard users without DB access.
+   `admin.users` is oversight-only.~~ **CLOSED — Phase 11 slice 1:**
+   admin create/edit with the legacy vocabulary (see
+   docs/IMPLEMENTATION.md); the admin is self-sufficient.
+   **Remaining value: the country/state and company-profile gaps.**
 2. **Company profile editor** — `add_company.php`/`edit_company.php`
    edit the single `tbl_parameters` row (now `company_settings`). The
    row is migrated, but there is no admin screen to edit plant code,

@@ -463,4 +463,46 @@ with successor `yearsid+1` → flg 1/'a'; previous open years demoted to
 four admin dashboard cards are wired. Suite
 Phase10AdminScreensTest (9 tests). Full suite after the slice: 226
 passed / 1 skipped, 3,297 assertions — **Phase 10 is complete and the
-modernization port has every legacy screen accounted for.**
+modernization port has every legacy screen accounted for.
+
+## Phase 11 slice 1 — admin account create/edit
+
+The first coverage-audit gap (docs/COVERAGE_AUDIT.md) is closed:
+`Admin\UserController` grows create/store/edit/update over the existing
+`admin.users.*` group, porting the legacy account screens
+(add_operator.php / add_viewer.php / add_indentrole.php and their edit_
+siblings) plus adminprofile.php's security Q&A:
+
+- Field set verbatim: name, login, password, e-mail, role
+  (operator/eindent/viewer), status Active/Suspend radio, and one of
+  the five fixed adminprofile.php security questions with a
+  non-case-sensitive answer. `Admin\UserRequest` carries the legacy
+  "Duplicate not allowed." checks as unique rules on login and e-mail
+  (legacy probed both the role table and tbl_user; the consolidated
+  users table needs one check per column, edit-scoped like legacy's
+  id/scode exclusion). Every field is required on create (legacy edit
+  screens' "All fields are required.", applied server-side); on edit
+  the password is optional (blank keeps the current hash) and the role
+  is immutable (only the row's own value round-trips — legacy had no
+  re-role screen), matching the disabled inputs in the edit view.
+- Account codes: legacy auto-numbered per role table with display
+  prefixes (OP{max+1}, SRV…, EI…); the port continues the role's
+  series over the numeric suffix of users.code and stores the legacy
+  display form (data truth: bare numbers 13…/27…/42… migrated).
+- Secrets: passwords go through the 'hashed' cast (legacy stored
+  plaintext); security answers are stored as bcrypt of the
+  lowercased trim, and PasswordResetController's answerMatches now
+  checks the lowercased form first while keeping verbatim-stored
+  answers and legacy plaintext rows verifiable — the non-case-
+  sensitive contract adminprofile.php advertised. A question without
+  an answer is refused (the forgot-password flow requires both).
+- Admin accounts are neither editable nor toggleable (422), as in the
+  Phase 10 slice 4 guards; creation vocabulary excludes admin — the
+  system ships exactly one.
+- Suite: Phase10AdminScreensTest extended to 16 tests (99 assertions):
+  create-screen vocabulary, store with series code + hashed secrets +
+  audit row, duplicate/bad-role refusals, Q&A pairing, edit (blank
+  password keeps the hash, Q&A set, plaintext-answer parity through
+  the real password.verify endpoint), admin-edit protection, gates.
+  Full suite after the slice: 233 passed / 1 skipped, 3,349
+  assertions.**

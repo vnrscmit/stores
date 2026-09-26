@@ -81,9 +81,13 @@ class PasswordResetController extends Controller
     {
         $stored = (string) $user->answer;
 
-        // New-format bcrypt answers.
+        // New-format bcrypt answers. Answers are stored bcrypt of the
+        // lowercased trim (adminprofile.php advertised "Non-Case
+        // Sensitive"); the second check keeps verbatim-stored answers
+        // verifiable.
         if (str_starts_with($stored, '$2y$')) {
-            return Hash::check(trim($answer), $stored);
+            return Hash::check(strtolower(trim($answer)), $stored)
+                || Hash::check(trim($answer), $stored);
         }
 
         // Legacy plaintext answers (case-insensitive parity with legacy).
