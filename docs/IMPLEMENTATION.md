@@ -452,7 +452,15 @@ workspace (the legacy operator menu link was dead):
 - Suite Phase10QrCodeTest (10 tests, hermetic). Full suite after the
   slice: 217 passed / 1 skipped, 3,250 assertions.
 
-## Phase 10 remaining slices
+## Phase 10 — complete
 
-Slice 4 (admin dashboard completion) is surveyed in docs/PHASE10.md and
-pending.
+Slice 4 (admin dashboard completion) is done: the **Users & Roles**
+screen (listing + Suspend/Activate with admin and self protection;
+suspended users cannot log in) and the **Year Setting** screen (legacy
+year state machine verbatim — activate = flg 2/'a', close = flg 0/'c'
+with successor `yearsid+1` → flg 1/'a'; previous open years demoted to
+'u', a documented deviation from legacy leaving two 'a' rows). All
+four admin dashboard cards are wired. Suite
+Phase10AdminScreensTest (9 tests). Full suite after the slice: 226
+passed / 1 skipped, 3,297 assertions — **Phase 10 is complete and the
+modernization port has every legacy screen accounted for.**

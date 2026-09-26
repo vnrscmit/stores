@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\YearController;
 use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
 use App\Http\Controllers\Arrival\ArrivalController;
 use App\Http\Controllers\Arrival\ItemTransferController;
@@ -320,6 +322,22 @@ Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/backup')->name('a
 Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('audit')->name('audit.')->group(function () {
     Route::get('/', [AuditTrailController::class, 'index'])->name('index');
     Route::get('/entries/{audit}', [AuditTrailController::class, 'show'])->whereNumber('audit')->name('show');
+});
+
+// Users & Roles + Year Setting (Phase 10 slice 4): the admin dashboard
+// placeholders. Legacy: the operator/viewer listing side of
+// add_operator.php / add_viewer.php (Suspend blocks login) and the
+// tblyears state machine of current_year.php (activate) + closeyear.php
+// (close + open the successor yearsid+1).
+Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/users')->name('admin.users.')->group(function () {
+    Route::get('/', [UserController::class, 'index'])->name('index');
+    Route::post('/{user}/toggle', [UserController::class, 'toggle'])->whereNumber('user')->name('toggle');
+});
+
+Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/years')->name('admin.years.')->group(function () {
+    Route::get('/', [YearController::class, 'index'])->name('index');
+    Route::post('/activate', [YearController::class, 'activate'])->name('activate');
+    Route::post('/close', [YearController::class, 'close'])->name('close');
 });
 
 // Viewer reports (Phase 3 slice) ---------------------------------------------

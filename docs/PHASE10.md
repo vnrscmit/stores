@@ -256,14 +256,41 @@ Net-new tables (no legacy tables to migrate — they never existed):
 - Suite: format + serial continuation per year+type, draft purge,
   linked save + qty_good write-back, print sheet render, gates.
 
-### Slice 4 — Admin dashboard completion
+### Slice 4 — Admin dashboard completion — DONE
 
-- Replace the two remaining `#` placeholder cards: "Users & Roles" →
-  real users listing route (new lightweight UsersIndex if absent),
-  "Year Setting" → the year close screen. (Verify what exists; if the
-  underlying screens don't exist yet, fold them into this milestone as
-  sub-slices.)
-- QR + Backup + Audit cards wired from slices 1–3.
+The two remaining `#` placeholder cards are wired: **Users & Roles** →
+`route('admin.users.index')`, **Year Setting** →
+`route('admin.years.index')` (plus Backup/Audit/QR cards from slices
+1–3). Both screens are `role:admin` groups in routes/web.php.
+
+- **Users & Roles** (`Admin\UserController`): all users ordered by
+  role,login with a Suspend/Activate toggle per row. Legacy
+  `add_operator.php` suspended by setting status to 'Suspend'; the
+  toggle reproduces that Active↔Suspend flip. Guards: admins cannot be
+  suspended and you cannot suspend yourself (both `abort(422)`);
+  suspended users are refused by the existing login check
+  (`User::isActive()`).
+- **Year Setting** (`Admin\YearController`) ports the legacy year
+  state machine verbatim: **activate** = chosen year `years_flg=2,
+  years_status='a'` (Masters/current_year.php); **close** = active year
+  `flg=0, status='c'` and successor = literally `yearsid + 1`
+  (insertion order) set `flg=1, status='a'` (Masters/closeyear.php).
+  Refuses re-activating a closed year (422) and refuses close when no
+  successor row exists (422). Both run in a transaction with
+  `lockForUpdate` and flush `FiscalYear` (session + static cache).
+- Deliberate deviation (documented): legacy `current_year.php` left the
+  previously open years with status still 'a' (two 'a' rows at once);
+  the port demotes previous open years to `years_status='u'` so exactly
+  one active year exists. The legacy per-year `expro*` side databases
+  are **not** ported — the single-DB port replaces the multi-DB
+  deployment by design.
+- Suite `Phase10AdminScreensTest` (9 tests, 47 assertions): guest
+  redirect + operator bounce-home for both screens, listing, suspend
+  blocks login / activate restores, admin+self 422 protection, year
+  screen render, activate switches the year (previous demoted 'u'),
+  closed year refused, close moves flags to yearsid+1 (with FY restore
+  in `finally`). Full suite after the slice: **226 passed / 1 skipped,
+  3,297 assertions**.
 
 ## 4. Deliberate scope decisions (to confirm with the user)
 
