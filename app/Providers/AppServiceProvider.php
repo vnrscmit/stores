@@ -10,6 +10,7 @@ use App\Models\Captive;
 use App\Models\CaptiveItem;
 use App\Models\CaptiveSloc;
 use App\Models\Classification;
+use App\Models\CompanySetting;
 use App\Models\Discard;
 use App\Models\DiscardItem;
 use App\Models\DiscardSloc;
@@ -66,6 +67,7 @@ class AppServiceProvider extends ServiceProvider
         // audit trail tracks (unmapped classes keep their FQCN).
         Relation::morphMap([
             'users' => User::class,
+            'company_settings' => CompanySetting::class,
             'warehouses' => Warehouse::class,
             'bins' => Bin::class,
             'sub_bins' => SubBin::class,

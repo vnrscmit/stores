@@ -11,8 +11,9 @@ settings, caches, scheduled tasks and rollback. Ordered by value.
    the legacy vocabulary — role, security Q&A, duplicate login/email
    checks (add_operator/add_indentrole.php), Active/Suspend already
    present. The admin can onboard without DB access.
-2. **Company profile editor**: single-row form over `company_settings`
-   (plant code feeds QR serials; address/licence feed printed docs).
+2. **Company profile editor** ✅ done (Phase 11 slice 2): single-row
+   form over `company_settings` (plant code feeds QR serials; address/
+   licence feed printed docs), plus the `plantcode` column fix.
 3. **Country/state masters** or an explicit documented skip: tables
    exist, legacy screens were bare-bones and near-unused.
 

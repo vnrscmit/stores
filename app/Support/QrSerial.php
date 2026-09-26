@@ -45,13 +45,17 @@ class QrSerial
     /** The plant code (verbatim legacy source + default). */
     public static function plantCode(): string
     {
-        $plant = DB::table('company_settings')
+        // The legacy code read tbl_parameters.plantcode — a column its
+        // live schema lacked, so the legacy generator always fell back
+        // to the hard-coded default. Migration 000055 adds the column;
+        // the fallback keeps the legacy default for empty/absent data.
+        $code = DB::table('company_settings')
             ->where('id', 41)
-            ->value('plant');
+            ->value('plantcode');
 
-        $plant = is_string($plant) ? trim($plant) : '';
+        $code = is_string($code) ? trim($code) : '';
 
-        return $plant !== '' ? $plant : 'DEF';
+        return $code !== '' ? $code : 'DEF';
     }
 
     /** The prefix for a year/type, e.g. D252611 (D + 2526 + 11). */

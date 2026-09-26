@@ -60,6 +60,7 @@ class DashboardController extends Controller
             ['label' => 'Items', 'url' => route('masters.items.index'), 'desc' => 'Item master with UoM and reorder levels'],
             ['label' => 'Parties', 'url' => route('masters.parties.index'), 'desc' => 'Vendor, C&F, dealer and transfer parties'],
             ['label' => 'Users & Roles', 'url' => route('admin.users.index'), 'desc' => 'Accounts, roles and suspend/activate'],
+            ['label' => 'Company profile', 'url' => route('admin.company.edit'), 'desc' => 'Company/plant identity, licence and tax numbers; QR plant code'],
             ['label' => 'Year Setting', 'url' => route('admin.years.index'), 'desc' => 'Active fiscal year and year-end close'],
             ['label' => 'e-Indent Approvals', 'url' => route('eindents.approvals'), 'desc' => 'Approve or return submitted indents'],
             ['label' => 'Reports', 'url' => route('viewer.reports.index'), 'desc' => 'Stock, ledger and movement reports'],

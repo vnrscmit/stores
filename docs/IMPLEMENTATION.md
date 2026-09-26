@@ -505,4 +505,39 @@ siblings) plus adminprofile.php's security Q&A:
   password keeps the hash, Q&A set, plaintext-answer parity through
   the real password.verify endpoint), admin-edit protection, gates.
   Full suite after the slice: 233 passed / 1 skipped, 3,349
-  assertions.**
+  assertions.
+
+## Phase 11 slice 2 — company profile editor
+
+The second coverage-audit gap is closed: `Admin\CompanySettingController`
+(edits/updates the single `company_settings` row id=41, the legacy
+`tbl_parameters` live row) at `admin.company.edit` / `admin.company.update`
+with a dashboard card, porting add_company.php / edit_company.php:
+
+- Field set verbatim with the legacy maxlengths: company name
+  (required, 40), address, city/pin/state/std/phone×2 for BOTH the
+  company and the plant block, licence_no (40), tin (20), cst_no (20).
+  `Admin\CompanySettingRequest` validates server-side where legacy
+  validated client-side only.
+- The plant-code surprise: the legacy screens read and wrote
+  `tbl_parameters.plantcode` — a column the live legacy schema never
+  had (the same situation as the QR subsystem's classification_type),
+  so legacy plant-code edits silently vanished AND the legacy QR
+  generator always fell back to its hard-coded default. Migration
+  000055 adds `company_settings.plantcode` varchar(20) (backfilled
+  from staged legacy data when the dump carries the column),
+  QrSerial::plantCode() now reads it with the verbatim 'DEF' fallback,
+  and the editor labels it "Plant Code (QR prefix)" — fixing the
+  port's latent bug of reading the multi-line `plant` address as the
+  prefix, which would have corrupted every QR code on a fully
+  migrated database. Phase11CompanyProfileTest pins the contract:
+  DEF when empty, the stored code when set, prefix D25252611.
+- Deviation: the logo upload is not ported — legacy copied the file
+  to ../help/ and stored a relative path the port's front end never
+  renders; the migrated logo column is untouched.
+- Audit module `admin.company`; CompanySetting joins the morph map as
+  `company_settings`. Suite Phase11CompanyProfileTest (5 tests, 35
+  assertions): admin gate, render, update + audit row, validation
+  (required name, no-space plant code, tin maxlength), and the
+  QrSerial contract. Full suite after the slice: 238 passed / 1
+  skipped, 3,384 assertions.**

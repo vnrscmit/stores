@@ -54,9 +54,13 @@ Plus the role dashboards (`index.php`, `indexopr.php`, `indexview.php`,
    docs/IMPLEMENTATION.md); the admin is self-sufficient.
    **Remaining value: the country/state and company-profile gaps.**
 2. **Company profile editor** — `add_company.php`/`edit_company.php`
-   edit the single `tbl_parameters` row (now `company_settings`). The
-   row is migrated, but there is no admin screen to edit plant code,
-   address, licence/TIN, etc.
+   edit the single `tbl_parameters` row (now `company_settings`).
+   ~~The row is migrated, but there is no admin screen to edit plant
+   code, address, licence/TIN, etc.~~ **CLOSED — Phase 11 slice 2:**
+   `admin.company.edit` over the id=41 row, including the plant code
+   the legacy schema never actually stored (see
+   docs/IMPLEMENTATION.md). The editor also fixed a latent QR bug:
+   QrSerial read the multi-line plant address as the code prefix.
 3. **Country/state masters** — `add_country.php`, `add_state.php`
    (`tbl_country`/`tbl_state` → `countries`/`states`). Tables migrated
    (`countries` has rows; `states` is empty); no screens. Legacy kept

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BackupController;
+use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\YearController;
 use App\Http\Controllers\Arrival\ArrivalAvailabilityController;
@@ -329,6 +330,11 @@ Route::middleware(['auth', 'fy', 'role:viewer,admin'])->prefix('audit')->name('a
 // add_operator.php / add_viewer.php (Suspend blocks login) and the
 // tblyears state machine of current_year.php (activate) + closeyear.php
 // (close + open the successor yearsid+1).
+Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/company')->name('admin.company.')->group(function () {
+    Route::get('/', [CompanySettingController::class, 'edit'])->name('edit');
+    Route::put('/', [CompanySettingController::class, 'update'])->name('update');
+});
+
 Route::middleware(['auth', 'fy', 'role:admin'])->prefix('admin/users')->name('admin.users.')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('index');
     Route::get('/create', [UserController::class, 'create'])->name('create');
