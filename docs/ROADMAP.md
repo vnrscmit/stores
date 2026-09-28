@@ -26,9 +26,10 @@ skip) — Phase 11 is complete.
 
 ## Hardening
 
-- **Password bootstrap**: a seeder/command that creates or resets the
-  admin account (discovered during browser verification: a migrated
-  DB has no usable admin password until one is set by hand).
+- **Password bootstrap** ✅ `php artisan admin:bootstrap` creates or
+  resets an admin account (interactive prompts, or `--login` +
+  `--password` for scripts) so a freshly migrated DB is loggable-into
+  without hand-written SQL.
 - **Dependency audit**: `composer audit` currently reports advisories
   on laravel/framework (pre-existing); track and bump when fixes land.
 - **Session/HTTPS**: force HTTPS at the web server, review session

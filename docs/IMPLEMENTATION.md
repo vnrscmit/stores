@@ -541,3 +541,36 @@ with a dashboard card, porting add_company.php / edit_company.php:
   (required name, no-space plant code, tin maxlength), and the
   QrSerial contract. Full suite after the slice: 238 passed / 1
   skipped, 3,384 assertions.**
+
+## Phase 11 hardening — admin bootstrap command
+
+The ROADMAP "Password bootstrap" item is closed: `php artisan
+admin:bootstrap` creates or resets an admin account so a freshly
+migrated database is loggable-into without hand-written SQL (the
+browser-verification discovery: migrated hashes predate the port's
+bcrypt scheme and only re-hash on a successful login the operator
+cannot perform without a working password).
+
+- `--login` + `--password` run non-interactively (with `-n`/CI both
+  options are required — otherwise exit 1 with nothing mutated);
+  omitting either in a TTY prompts for it (`secret()` hides the
+  password input).
+- Unknown login => creates the first admin: role admin, status Active,
+  name/email via `--name`/`--email` (optional interactive e-mail
+  prompt, validated like the account screens), code '0' — the migrated
+  admin row's series; admins have no legacy OP/SRV/EI series.
+- Existing admin login => password reset through the same 'hashed'
+  cast as Admin\UserController; a suspended account is reactivated
+  (warning); resetting one of several admins warns with the total.
+- Refusals: non-admin logins (operator/eindent/viewer) and passwords
+  under the UserRequest 6+ floor — exit 1, nothing written.
+- Audit: module `admin.users`, action `create` / `password-reset`,
+  CLI-shaped rows (user_id/user_login NULL — no authenticated
+  session); no password material in the snapshots.
+- Security Q&A is left unset (forgot-password requires both parts;
+  the admin sets them via the account screens).
+- Phase11AdminBootstrapTest (7 tests, 42 assertions) pins the
+  end-to-end acceptance: after the command, POST /login really logs
+  the account into admin.home — plus the `-n` contract, the refusals,
+  reactivation, and raw-hash sweep restores. Full suite after the
+  slice: 245 passed / 1 skipped, 3,426 assertions.
