@@ -574,3 +574,29 @@ cannot perform without a working password).
   the account into admin.home — plus the `-n` contract, the refusals,
   reactivation, and raw-hash sweep restores. Full suite after the
   slice: 245 passed / 1 skipped, 3,426 assertions.
+
+## Tooling — php artisan serve repaired
+
+`php artisan serve` had been broken in this checkout since the import:
+the repo-root server.php (a stale copy of the Laravel-9-era
+public/index.php body — unused Kernel import and all) resolved
+__DIR__.'/../vendor/autoload.php' one level ABOVE the repo, so every
+request died with "Failed opening required ...stores/../vendor/
+autoload.php" — delivered as HTTP 200 with the fatal error in the
+body, the worst kind of broken.
+
+Since Laravel 10 the ServeCommand runs `php -S host:port server.php`
+with cwd = public/ and NO -t docroot flag: static-file routing is the
+router script's job, and the framework's own maintained router
+(Foundation/resources/server.php — used whenever no root server.php
+exists, which is what the Laravel 11 skeleton ships) serves existing
+files from cwd and requires cwd/index.php. The stale root file is
+deleted; ServeCommand now falls back to the maintained router and
+`php artisan serve` serves the app again — verified end-to-end:
+GET /login 200 with the real page, / 302 to login, POST /login with
+CSRF + session 302 to /admin (which also live-validated the
+admin:bootstrap-reset admin123 credentials). The Start-Process +
+`php -S ... public/index.php` workaround from the verification run is
+retired.
+
+Change: server.php deleted; no other code touched.
