@@ -479,7 +479,11 @@ class Phase10AdminScreensTest extends TestCase
         $this->put(route('admin.users.update', $admin), [
             'login' => $admin->login,
             'name' => 'TEST Hack',
-            'email' => $admin->email,
+            // The migrated data shares admin@vnrseeds.com across two admin
+            // rows (legacy never enforced e-mail uniqueness); a fresh unique
+            // address keeps the unique-rule out of the way so the request
+            // exercises the admin-guard abort this test targets.
+            'email' => 'TEST-unique-admin@vnrseeds.com',
             'status' => 'Suspend',
             'role' => 'admin',
         ])->assertStatus(422);

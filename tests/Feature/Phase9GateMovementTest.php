@@ -194,6 +194,16 @@ class Phase9GateMovementTest extends TestCase
                     ->whereColumn('newer.stlg_subbinid', 'stock_ledger_goods.stlg_subbinid')
                     ->whereColumn('newer.stlg_id', '>', 'stock_ledger_goods.stlg_id');
             })
+            // The subset-capped legacy import leaves some ledger rows pointing
+            // at sub_bins rows the cap dropped — every flip contract below
+            // needs a real sub_bins row at the same location.
+            ->whereExists(function ($q) {
+                $q->selectRaw(1)
+                    ->from('sub_bins')
+                    ->whereColumn('sub_bins.sid', 'stock_ledger_goods.stlg_subbinid')
+                    ->whereColumn('sub_bins.whid', 'stock_ledger_goods.stlg_whid')
+                    ->whereColumn('sub_bins.binid', 'stock_ledger_goods.stlg_binid');
+            })
             ->orderByDesc('stock_ledger_goods.stlg_id')
             ->firstOrFail();
 
@@ -232,6 +242,15 @@ class Phase9GateMovementTest extends TestCase
                     ->whereColumn('newer.stld_binid', 'stock_ledger_damages.stld_binid')
                     ->whereColumn('newer.stld_subbinid', 'stock_ledger_damages.stld_subbinid')
                     ->whereColumn('newer.stld_id', '>', 'stock_ledger_damages.stld_id');
+            })
+            // See stockedItem(): the row's location must be a real sub_bins
+            // row for the Empty-flip assertion to be meaningful.
+            ->whereExists(function ($q) {
+                $q->selectRaw(1)
+                    ->from('sub_bins')
+                    ->whereColumn('sub_bins.sid', 'stock_ledger_damages.stld_subbinid')
+                    ->whereColumn('sub_bins.whid', 'stock_ledger_damages.stld_whid')
+                    ->whereColumn('sub_bins.binid', 'stock_ledger_damages.stld_binid');
             })
             ->orderByDesc('stock_ledger_damages.stld_id')
             ->firstOrFail();

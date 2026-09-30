@@ -51,8 +51,11 @@ skip) — Phase 11 is complete.
 
 ## Testing / CI
 
-- **CI pipeline**: Pint + `php artisan test` on every push (the suite
-  is hermetic and self-contained; parallel worker DBs already built).
+- **CI pipeline** ✅ GitHub Actions (.github/workflows/tests.yml): Pint
+  then the full suite on every push/PR, against a MariaDB service with
+  the legacy fixture (encrypted in database/fixtures, decrypted via the
+  FIXTURE_KEY secret) and the hermetic pipeline self-healing the test
+  DB on a cold runner.
 - **Browser smoke checklist**: a short scripted pass over each role's
   dashboard (the 8090 verification run is the template).
 

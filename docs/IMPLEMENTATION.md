@@ -600,3 +600,57 @@ admin:bootstrap-reset admin123 credentials). The Start-Process +
 retired.
 
 Change: server.php deleted; no other code touched.
+
+## Tooling — CI pipeline (Pint + full suite on every push)
+
+The ROADMAP "CI pipeline" item is closed with .github/workflows/
+tests.yml: two jobs on push/PR — a Pint dirty check (app tests config
+database routes) and the full suite (`php artisan test`) gated on it,
+against a mariadb:10.11 service container
+(MARIADB_ALLOW_EMPTY_ROOT_PASSWORD matches the local root/empty
+contract; healthcheck.sh gates the run).
+
+The missing piece for CI was the legacy `stores` database the hermetic
+pipeline imports from (36.6 MB live, not in git — storesd.sql is
+deliberately ignored). It ships as an encrypted fixture:
+database/fixtures/legacy-stores.sql.gz.enc — the canonical storesd.sql
+snapshot gzipped, aes-256-cbc encrypted (random IV prefixed), base64
+(written + verified by tests/support/fixture_rebuild.php, which
+decrypts the artifact back and compares sha256 before declaring
+success). The key lives in the FIXTURE_KEY GitHub secret and, locally,
+in gitignored database/fixtures/FIXTURE_KEY.txt.
+
+tests/support/ci_fixture_restore.php is the single code path the
+workflow and the local rehearsal share: PDO-only (no mysql CLI on the
+runner), it validates the fixture BEFORE touching any database and
+restores `stores` only when absent/empty (re-runs are safe; a
+populated DB is never dropped — lesson from this slice: the first
+draft dropped-then-decrypted and a corrupt pipe cost the live legacy
+DB, recovered byte-clean from storesd.sql). It strips only leading
+comment lines per statement chunk (the first draft skipped every
+"--"-prefixed chunk and silently dropped all 54 CREATE TABLEs —
+fail-fast at the first INSERT), executes the /*!40101 charset
+conditionals the dump relies on, then ensures stores_laravel_test
+exists. Suite data never leaves the fixture; APP_KEY for CI is a
+dedicated throwaway (encrypted-cookie roundtrips in tests only).
+
+Cold-start verified locally: with stores_laravel_test dropped and CI
+env vars set, Phase1PipelineTest ran the real pipeline against the
+restored legacy DB (~2 min) and the suites went green — the first
+gated Feature class self-heals the test DB exactly as designed; no
+PIPELINE_FRESH needed. To arm CI: add the FIXTURE_KEY repo secret
+(value of database/fixtures/FIXTURE_KEY.txt).
+
+Full-suite gate on the rebuilt-from-fixture DB hardened two data-state
+tests (the rebuilt DB is what every CI cold start now produces, so the
+tests must hold against the subset-capped import): Phase9GateMovement
+Test's stockedItem()/damagedItem() require the picked ledger row's
+location to be a real sub_bins row (the 2000-row cap drops sub_bins
+rows, leaving migrated ledger rows that dangle — the Empty-flip
+assertions are meaningless without one; instrumented run proved the
+picked row pointed at subbin 1073, absent from sub_bins), and
+Phase10AdminScreensTest's admin-edit guard test submits a unique
+e-mail (the migrated data legitimately shares admin@vnrseeds.com
+across two admins — legacy never enforced e-mail uniqueness — which
+fired "Duplicate not allowed." before the 422 admin-guard the test
+targets). Suite after: 245 passed / 1 skipped, 3,425 assertions.

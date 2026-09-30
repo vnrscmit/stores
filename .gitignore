@@ -25,3 +25,8 @@ yarn-error.log
 Thumbs.db
 *.rar
 storesd.sql
+
+# CI fixture key (the encrypted legacy dump in database/fixtures is committed;
+# the decryption key lives only in the local file and the GitHub secret).
+/database/fixtures/FIXTURE_KEY.txt
+/database/fixtures/*.sql.gz
