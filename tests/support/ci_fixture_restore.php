@@ -28,8 +28,12 @@
  *   FIXTURE_KEY=$(cat database/fixtures/FIXTURE_KEY.txt) \
  *     php tests/support/ci_fixture_restore.php
  */
-if (getenv('FIXTURE_KEY') === false || getenv('FIXTURE_KEY') === '') {
-    fwrite(STDERR, "FIXTURE_KEY env is required (the aes-256-cbc key the fixture was encrypted with).\n");
+$key = trim((string) getenv('FIXTURE_KEY'));
+
+// Tolerate the classic manual-paste accidents (trailing newline, spaces,
+// CRLF) — the key is 48-char hex, so trimming can never mangle a real key.
+if ($key === '' || ! preg_match('/^[0-9a-fA-F]{48}$/', $key)) {
+    fwrite(STDERR, 'FIXTURE_KEY env is missing or malformed (expected 48 hex chars, got '.strlen($key)."). Check the GitHub secret for stray whitespace/newlines.\n");
     exit(1);
 }
 
@@ -60,7 +64,7 @@ if ($payload === false || strlen($payload) < 17) {
 }
 
 // Format: base64( 16-byte random IV || aes-256-cbc(gzip(dump)) ).
-$gz = openssl_decrypt(substr($payload, 16), 'aes-256-cbc', (string) getenv('FIXTURE_KEY'), OPENSSL_RAW_DATA, substr($payload, 0, 16));
+$gz = openssl_decrypt(substr($payload, 16), 'aes-256-cbc', $key, OPENSSL_RAW_DATA, substr($payload, 0, 16));
 if ($gz === false) {
     fwrite(STDERR, "Decryption failed — FIXTURE_KEY does not match this fixture.\n");
     exit(1);
