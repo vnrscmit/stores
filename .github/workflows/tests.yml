@@ -68,7 +68,9 @@ jobs:
 
       - name: Diagnose fixture inputs (masked)
         run: |
-          echo "FIXTURE_KEY length: ${#FIXTURE_KEY}"
+          echo "FIXTURE_KEY env length: ${#FIXTURE_KEY}"
+          echo "Actions secrets context has FIXTURE_KEY: ${{ secrets.FIXTURE_KEY != '' }}"
+          echo "Actions variables context has FIXTURE_KEY: ${{ vars.FIXTURE_KEY != '' }}"
           echo "Fixture bytes: $(wc -c < database/fixtures/legacy-stores.sql.gz.enc)"
           if [ "${#FIXTURE_KEY}" -ne 48 ]; then
             echo "::warning::FIXTURE_KEY is ${#FIXTURE_KEY} chars (expected 48) - check the secret for stray whitespace/newlines"
