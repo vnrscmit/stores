@@ -73,6 +73,7 @@ jobs:
           echo "Actions variables context has FIXTURE_KEY: ${{ vars.FIXTURE_KEY != '' }}"
           echo "Fixture bytes: $(wc -c < database/fixtures/legacy-stores.sql.gz.enc)"
           echo "::notice::probe secrets.FIXTURE_KEY non-empty = ${{ secrets.FIXTURE_KEY != '' }}"
+          echo "::notice::probe secrets.GITHUB_TOKEN non-empty = ${{ secrets.GITHUB_TOKEN != '' }}"
           echo "::notice::probe vars.FIXTURE_KEY non-empty = ${{ vars.FIXTURE_KEY != '' }}"
           echo "::warning::probe FIXTURE_KEY env length = ${#FIXTURE_KEY}"
           if [ "${#FIXTURE_KEY}" -ne 48 ]; then
