@@ -80,4 +80,7 @@ jobs:
         run: php artisan test --display-warnings
 
       - name: Diagnostic — raw phpunit warning text
-        run: vendor/bin/phpunit tests/Feature/Phase1PipelineTest.php 2>&1 | head -60
+        run: |
+          vendor/bin/phpunit tests/Feature/Phase10AdminScreensTest.php --display-warnings 2>&1 | tail -45
+          echo "=== artisan for comparison ==="
+          php artisan test tests/Feature/Phase10AdminScreensTest.php 2>&1 | tail -12
