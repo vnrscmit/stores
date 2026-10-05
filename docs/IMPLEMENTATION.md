@@ -654,3 +654,30 @@ e-mail (the migrated data legitimately shares admin@vnrseeds.com
 across two admins — legacy never enforced e-mail uniqueness — which
 fired "Duplicate not allowed." before the 422 admin-guard the test
 targets). Suite after: 245 passed / 1 skipped, 3,425 assertions.
+
+## Tooling — CI bring-up completed (2026-10-05)
+
+The pipeline's first green run on GitHub Actions: Pint + the full suite
+both pass on push (`e77f304`, run #16). Getting there surfaced three
+things the repo now accounts for:
+
+- The FIXTURE_KEY repository secret never landed through the web UI
+  across five attempts (values are never displayed back, so empty saves
+  were invisible). Diagnostic probes in the workflow — readable as
+  annotations through the public API — proved the secrets context was
+  empty while GITHUB_TOKEN flowed; the secret was then saved through
+  the form with the field contents verified programmatically before
+  submitting (48 hex chars confirmed in-field), and the probes flipped
+  true. Both diagnostic commits and the probe step were removed after
+  the fix (the 48-char fail-fast guard remains).
+- `tests/Unit` is empty and git does not track empty directories, so
+  CI's fresh checkout had no Unit directory and PHPUnit exited 2 before
+  running anything ("Test directory not found"). Tracked via
+  tests/Unit/.gitkeep.
+- On CI, PHP warnings surface per test as PHPUnit warnings ("Tests:
+  246 warnings (3425 assertions)", exit 0) with the message truncated
+  to "file_get_contents(/home/runner/…"; locally the same tests pass
+  clean even under error_reporting=E_ALL, so the cause is
+  CI-environment-specific (XAMPP vs setup-php runtime). The suite step
+  now runs `php artisan test --display-warnings` so the next run prints
+  the full text; the gate is green either way.

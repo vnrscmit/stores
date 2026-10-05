@@ -30,7 +30,6 @@ jobs:
     name: PHPUnit (MariaDB)
     runs-on: ubuntu-latest
     needs: pint
-    environment: ci
 
     services:
       mariadb:
@@ -67,22 +66,15 @@ jobs:
       - name: Install dependencies
         uses: ramsey/composer-install@v3
 
-      - name: Diagnose fixture inputs (masked)
+      - name: Guard fixture key length
         run: |
-          echo "FIXTURE_KEY env length: ${#FIXTURE_KEY}"
-          echo "Actions secrets context has FIXTURE_KEY: ${{ secrets.FIXTURE_KEY != '' }}"
-          echo "Actions variables context has FIXTURE_KEY: ${{ vars.FIXTURE_KEY != '' }}"
           echo "Fixture bytes: $(wc -c < database/fixtures/legacy-stores.sql.gz.enc)"
-          echo "::notice::probe secrets.FIXTURE_KEY non-empty = ${{ secrets.FIXTURE_KEY != '' }}"
-          echo "::notice::probe secrets.GITHUB_TOKEN non-empty = ${{ secrets.GITHUB_TOKEN != '' }}"
-          echo "::notice::probe vars.FIXTURE_KEY non-empty = ${{ vars.FIXTURE_KEY != '' }}"
-          echo "::warning::probe FIXTURE_KEY env length = ${#FIXTURE_KEY}"
           if [ "${#FIXTURE_KEY}" -ne 48 ]; then
-            echo "::warning::FIXTURE_KEY is ${#FIXTURE_KEY} chars (expected 48) - check the secret for stray whitespace/newlines"
+            echo "::warning::FIXTURE_KEY is ${#FIXTURE_KEY} chars (expected 48) - check the secret value"
           fi
 
       - name: Restore legacy fixture + prepare databases
         run: php tests/support/ci_fixture_restore.php
 
       - name: Run the test suite
-        run: php artisan test
+        run: php artisan test --display-warnings
