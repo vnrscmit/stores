@@ -674,10 +674,14 @@ things the repo now accounts for:
   CI's fresh checkout had no Unit directory and PHPUnit exited 2 before
   running anything ("Test directory not found"). Tracked via
   tests/Unit/.gitkeep.
-- On CI, PHP warnings surface per test as PHPUnit warnings ("Tests:
-  246 warnings (3425 assertions)", exit 0) with the message truncated
-  to "file_get_contents(/home/runner/…"; locally the same tests pass
-  clean even under error_reporting=E_ALL, so the cause is
-  CI-environment-specific (XAMPP vs setup-php runtime). The suite step
-  now runs `php artisan test --display-warnings` so the next run prints
-  the full text; the gate is green either way.
+- CI-only PHP warnings, one per test ("Tests: 246 warnings (3425
+  assertions)", exit 0), traced with a PHPUnit event log to their full
+  text: `file_get_contents(<repo>/.env): Failed to open stream: No such
+  file or directory` from vlucas/phpdotenv Reader.php:73, triggered by
+  the framework boot in tests/TestCase.php:20. CI has no .env (the
+  workflow injects env vars directly), so every app boot emits the
+  suppressed read warning; PHPUnit 10 surfaces it per test. Locally the
+  tests pass clean even under error_reporting=E_ALL because .env
+  exists. Fixed by creating .env from the tracked .env.example in the
+  workflow before the suite (real env vars still win — phpdotenv loads
+  over but never replaces real environment entries).
