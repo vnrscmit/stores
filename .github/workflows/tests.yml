@@ -79,8 +79,14 @@ jobs:
       - name: Run the test suite
         run: php artisan test --display-warnings
 
-      - name: Diagnostic — raw phpunit warning text
+      - name: Diagnostic — warning matrix
         run: |
-          vendor/bin/phpunit tests/Feature/Phase10AdminScreensTest.php --display-warnings 2>&1 | tail -45
-          echo "=== artisan for comparison ==="
-          php artisan test tests/Feature/Phase10AdminScreensTest.php 2>&1 | tail -12
+          echo "=== A: artisan child exact cmd + display-warnings ==="
+          php vendor/phpunit/phpunit/phpunit --configuration=$PWD/phpunit.xml --no-output tests/Feature/Phase10AdminScreensTest.php --display-warnings 2>&1 | tail -25
+          echo "=== A2: event log tail (full warning text) ==="
+          php vendor/phpunit/phpunit/phpunit --configuration=$PWD/phpunit.xml --no-output tests/Feature/Phase10AdminScreensTest.php --log-events-text /tmp/events.txt 2>&1 | tail -3
+          grep -n -i "warning\|file_get_contents" /tmp/events.txt | head -10
+          echo "=== B: raw + COLLISION_PRINTER env ==="
+          COLLISION_PRINTER=DefaultPrinter vendor/bin/phpunit tests/Feature/Phase10AdminScreensTest.php --display-warnings 2>&1 | tail -12
+          echo "=== C: artisan --compact ==="
+          php artisan test tests/Feature/Phase10AdminScreensTest.php --compact 2>&1 | tail -30
