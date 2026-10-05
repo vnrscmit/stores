@@ -61,9 +61,11 @@ skip) — Phase 11 is complete.
 
 ## Cutover
 
-- **Cutover runbook**: extend docs/DEPLOYMENT.md with the day-of steps:
-  freeze legacy, final `stage-import → migrate-data → integrity-fix →
-  verify`, smoke pass, go-live, and the fallback (legacy untouched and
-  reversible until users start writing to the port).
+- **Cutover runbook** ✅ docs/CUTOVER.md: the day-of steps — rehearsal
+  (T-7), freeze + final legacy backup, `stage-import → migrate-data →
+  integrity-fix → add-constraints`, the `legacy:verify` and
+  `phase1:smoke` gates, `admin:bootstrap`, go-live, parallel-run week,
+  and the rollback paths (legacy untouched and reversible until users
+  start writing to the port).
 - **Training + parallel-run week**: operators double-entry key
   transactions; reconcile stock ledger + party ledger daily.

@@ -655,6 +655,22 @@ across two admins — legacy never enforced e-mail uniqueness — which
 fired "Duplicate not allowed." before the 422 admin-guard the test
 targets). Suite after: 245 passed / 1 skipped, 3,425 assertions.
 
+## Docs — cutover runbook (2026-10-05)
+
+docs/CUTOVER.md drafts the day-of cutover procedure the roadmap called
+for, grounded in the commands that actually exist: a T-7 rehearsal
+(timed pipeline run on a scratch DB so the window is known), the T-0
+freeze with an out-of-band final `storesd` dump and pre-cutover row
+counts, the migration sequence ending in the hard `legacy:verify` and
+`phase1:smoke` gates, `admin:bootstrap` for the go-live login, a
+`company_settings` check (plantcode feeds QR serials), production
+caches, and a port baseline dump before the vhost switch. Go-live is a
+document-root edit; rollback stays trivial until users write to the
+port, after which the parallel-run week (double-entry + daily ledger
+reconciliation) covers the re-keying cost. Appendixes: command quick
+sheet, go/no-go + smoke checklists, cutover log template, rollback
+paths.
+
 ## Tooling — CI bring-up completed (2026-10-05)
 
 The pipeline's first green run on GitHub Actions: Pint + the full suite
