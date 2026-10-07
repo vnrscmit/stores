@@ -10,6 +10,7 @@
 /storage/framework/sessions/*
 /storage/framework/views/*
 /storage/logs/*
+/storage/backups
 /bootstrap/cache/*.php
 .env
 .env.backup

@@ -57,8 +57,17 @@ php artisan view:cache
 
 1. Scheduler heartbeat (every minute):
    `C:\xampp\php\php.exe D:\VNR_Projects\stores\artisan schedule:run`
-2. Nightly backup 02:00 — add to `routes/console.php` schedule:
+2. Nightly backup 02:00 — registered in `routes/console.php`:
    `Schedule::command('db:backup')->dailyAt('02:00');`
+   `db:backup` runs `mysqldump` for BOTH databases (the port DB and
+   the legacy source), gzips each dump, prints a SHA-256 per file,
+   logs to the Laravel log, and prunes dumps older than
+   `BACKUP_RETENTION_DAYS` (default 14) — but only after a fully
+   successful run, so a broken dump never deletes the last good
+   backups. Off-site requirement: set `BACKUP_DIR` to a second disk or
+   a network share (empty = `storage/backups`, same disk, NOT
+   off-site). `php artisan db:backup --prune-only` applies the
+   retention window without dumping.
    (Back up BOTH databases; the legacy `storesd` must remain recoverable.)
 
 ## Rollback

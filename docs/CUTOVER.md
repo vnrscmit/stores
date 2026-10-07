@@ -67,8 +67,8 @@ unknowns. All steps run on the server that will host the port.
    e-indent, approve, issue against it, check the stock ledger).
 5. Verify the production web server stack: vhost document root pointed
    at `public/`, HTTPS planned or in place, Task Scheduler entries for
-   `schedule:run` created, nightly `mysqldump` job tested (it must back
-   up **both** databases).
+   `schedule:run` created, nightly `db:backup` tested (it must back up
+   **both** databases; set `BACKUP_DIR` to the off-site target first).
 6. Freeze the plan: announce the cutover window to all stores users,
    appoint the two roles, print appendixes B and C.
 

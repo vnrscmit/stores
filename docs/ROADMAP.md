@@ -40,9 +40,11 @@ skip) — Phase 11 is complete.
 
 ## Operations
 
-- **Automated off-site backup**: the in-app dump covers restore-from-
-  accident; add a Task Scheduler job that runs `mysqldump` nightly to
-  a second disk/network share with N-day retention.
+- **Automated off-site backup** ✅ `db:backup` (scheduled 02:00 in
+  routes/console.php behind the Task Scheduler heartbeat): `mysqldump`
+  of BOTH databases into `BACKUP_DIR`, gzip + SHA-256 per file,
+  N-day retention pruning after a fully successful run. Set
+  `BACKUP_DIR` to the second disk/network share in production.
 - **Health check endpoint + log rotation**: a cheap `/up`-style probe
   that verifies DB + active FY, and Laravel log rotation config.
 - **Data-quality pass**: run `legacy:integrity-fix --strategy=null` for

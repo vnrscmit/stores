@@ -701,3 +701,32 @@ things the repo now accounts for:
   exists. Fixed by creating .env from the tracked .env.example in the
   workflow before the suite (real env vars still win — phpdotenv loads
   over but never replaces real environment entries).
+
+## Feature — nightly off-site backup: db:backup (2026-10-07)
+
+The roadmap's automated-off-site-backup item is built: `db:backup`
+runs `mysqldump` for both databases (the port DB and the legacy
+source, per the mysql/legacy connection configs), gzips each dump via
+PHP's zlib streams in chunks (no shell pipes — Task Scheduler runs
+artisan without a shell), prints a SHA-256 per file, and prunes
+`*.sql.gz` beyond `BACKUP_RETENTION_DAYS` — but only after every
+requested dump succeeded, so a broken mysqldump never erases the last
+good backups (`--prune-only` applies the retention window standalone).
+The schedule is `Schedule::command('db:backup')->dailyAt('02:00')` in
+routes/console.php, driven by the existing Task Scheduler heartbeat.
+Off-site is a config decision: `BACKUP_DIR` must point at the second
+disk/network share (empty = storage/backups, same disk).
+
+Two things the XAMPP box forced into the design: MariaDB 10.4 here
+throws "Unknown error (1105)" on the SHOW FUNCTION STATUS that
+mysqldump --routines performs, so a failing dump retries once without
+the flag and reports the downgrade in the command output and the log
+(healthy servers keep routines in their dumps); and mysqldump on
+Windows needs `--result-file` plus a post-dump gzip since the
+scheduler has no pipe. Five new tests (13 assertions) cover
+prune-only, the failed-dump-conservative-retention behavior, `--only`
+validation, the registered schedule, and a real mysqldump run that
+skips when no binary is present (CI). Full suite: 251 passed /
+1 skipped, 3,438 assertions; Pint clean. End-to-end verified against
+the dev DBs: 15.4 MB + 10.5 MB gzip-valid dumps with checksums and
+audit-log entries.
