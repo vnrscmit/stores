@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\FinancialYear;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,12 @@ class HealthEndpointTest extends TestCase
 
     public function test_fails_when_no_active_fiscal_year_exists(): void
     {
+        // The CI fixture DB has no financial_years table (the probe skips
+        // its FY check there) — this scenario needs a real install shape.
+        if (! Schema::hasTable('financial_years')) {
+            $this->markTestSkipped('financial_years table not present on this host');
+        }
+
         // Deactivate every year — exactly the state the health check
         // exists to catch (all dashboards 500, DB itself fine).
         FinancialYear::query()->update(['years_flg' => 0, 'years_status' => 'u']);
