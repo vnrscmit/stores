@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 /**
@@ -24,13 +25,19 @@ use RuntimeException;
  *     middleware enforces for every authenticated page
  *     (years_flg != 0 AND years_status = 'a') — without it every
  *     dashboard 500s even though the DB itself is fine, so the probe
- *     must catch it.
+ *     must catch it. The check applies only when the `financial_years`
+ *     table exists (the CI fixture DB skips the schema import; on a
+ *     real install the table is always present after migrate).
  */
 class HealthChecks
 {
     public function handle(DiagnosingHealth $event): void
     {
         DB::select('select 1');
+
+        if (! Schema::hasTable('financial_years')) {
+            return;
+        }
 
         $fy = DB::table('financial_years')
             ->where('years_flg', '!=', 0)

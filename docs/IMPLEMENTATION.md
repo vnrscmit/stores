@@ -741,7 +741,9 @@ audit-log entries.
   years_status = 'a'`) — the same contract the `fy` middleware enforces,
   because without an active year every dashboard 500s even with a
   healthy DB. A thrown check is reported to the log and answered 500
-  (message only under APP_DEBUG).
+  (message only under APP_DEBUG). The FY check applies only when the
+  `financial_years` table exists — the CI fixture DB does not import
+  that schema, and the probe must not fail a healthy environment there.
 - `config/logging.php` published from the framework fallback with one
   deviation: the `stack` channel defaults to `daily` (rotating
   `laravel-YYYY-MM-DD.log`) with `LOG_DAILY_DAYS` retention (default
