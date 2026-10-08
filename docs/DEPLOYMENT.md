@@ -45,6 +45,22 @@ Point the vhost DOCUMENT ROOT at `public/` (never the project root):
 - Dedicated DB user with privileges only on `stores_laravel`
   (the legacy `storesd` user can be dropped after cutover verification)
 
+## Health probe
+
+`GET /up` answers 200 only when the database is reachable AND an active
+fiscal year exists (the same tblyears contract the app enforces on every
+authenticated page); anything else is a 500. Point the external uptime
+monitor (or a Task Scheduler curl check) at it. Note it deliberately
+performs NO authentication and reveals no data — failures carry a
+detail message only while APP_DEBUG is on.
+
+## Log rotation
+
+Published `config/logging.php`: the default `stack` channel routes to
+`daily`, so logs rotate as `laravel-YYYY-MM-DD.log` and
+`LOG_DAILY_DAYS` (default 14) prunes old files. Set `LOG_STACK=single`
+to return to one ever-growing file.
+
 ## Caches (production)
 
 ```bash

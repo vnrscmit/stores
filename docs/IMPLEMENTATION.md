@@ -730,3 +730,22 @@ skips when no binary is present (CI). Full suite: 251 passed /
 1 skipped, 3,438 assertions; Pint clean. End-to-end verified against
 the dev DBs: 15.4 MB + 10.5 MB gzip-valid dumps with checksums and
 audit-log entries.
+
+## Health probe + log rotation (operations roadmap)
+
+- `GET /up` — the framework health route registered in
+  bootstrap/app.php (`health: '/up'`), given substance by
+  `App\Support\HealthChecks`, registered as a `DiagnosingHealth`
+  listener in AppServiceProvider. Checks: `SELECT 1` on the default
+  connection, then the active-financial-year query (`years_flg != 0 AND
+  years_status = 'a'`) — the same contract the `fy` middleware enforces,
+  because without an active year every dashboard 500s even with a
+  healthy DB. A thrown check is reported to the log and answered 500
+  (message only under APP_DEBUG).
+- `config/logging.php` published from the framework fallback with one
+  deviation: the `stack` channel defaults to `daily` (rotating
+  `laravel-YYYY-MM-DD.log`) with `LOG_DAILY_DAYS` retention (default
+  14) instead of a single ever-growing laravel.log.
+- Tests: `tests/Feature/HealthEndpointTest.php` — 200 when healthy,
+  500 with no active FY, 500 with an unreachable DB (port pointed at a
+  closed listener + connection purge).

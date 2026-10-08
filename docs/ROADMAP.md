@@ -45,8 +45,12 @@ skip) — Phase 11 is complete.
   of BOTH databases into `BACKUP_DIR`, gzip + SHA-256 per file,
   N-day retention pruning after a fully successful run. Set
   `BACKUP_DIR` to the second disk/network share in production.
-- **Health check endpoint + log rotation**: a cheap `/up`-style probe
-  that verifies DB + active FY, and Laravel log rotation config.
+- **Health check endpoint + log rotation** ✅ the `/up` probe (registered
+  in bootstrap/app.php, substance in App\Support\HealthChecks wired via
+  the DiagnosingHealth event) verifies the DB connection AND the active
+  fiscal year — a broken DB or an unset year answers 500, ready for an
+  external uptime monitor. Logs rotate daily (config/logging.php: stack
+  → daily, LOG_DAILY_DAYS retention, default 14).
 - **Data-quality pass**: run `legacy:integrity-fix --strategy=null` for
   the dangling e_indent_items references surfaced by the dev-DB import,
   and wire `legacy:verify` row-parity into the cutover checklist.

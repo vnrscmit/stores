@@ -33,7 +33,10 @@ use App\Models\Party;
 use App\Models\SubBin;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Support\HealthChecks;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Foundation\Events\DiagnosingHealth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -52,6 +55,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // The /up health probe (bootstrap/app.php `health: '/up'`) is only
+        // meaningful with listeners: this one verifies the DB and the
+        // active fiscal year, so a broken DB or an unset year answers 500.
+        Event::listen(DiagnosingHealth::class, HealthChecks::class);
+
         // Authorization gates mirroring the legacy four-role model.
         Gate::define('manage-masters', fn ($user) => $user->role === 'admin');
         Gate::define('administrate', fn ($user) => $user->role === 'admin');
